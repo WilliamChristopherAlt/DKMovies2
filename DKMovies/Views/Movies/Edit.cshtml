@@ -1,0 +1,129 @@
+﻿@model DKMovies.Models.Movie
+@{
+    ViewData["Title"] = "Edit Movie";
+    var posterPath = string.IsNullOrWhiteSpace(Model.PosterImagePath)
+        ? Url.Content("~/images/movie_posters/default.jpg")
+        : Url.Content($"~/images/movie_posters/{Model.PosterImagePath}");
+}
+
+<h1 class="mb-4">🎬 Edit Movie</h1>
+
+<div class="shadow-sm bg-light rounded p-4 mb-4">
+    <form asp-action="Edit" enctype="multipart/form-data">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <input type="hidden" asp-for="ID" />
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Title" class="form-label"></label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="DurationMinutes" class="form-label"></label>
+                <input asp-for="DurationMinutes" class="form-control" />
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+            <span asp-validation-for="Description" class="text-danger small"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label asp-for="RatingID" class="form-label"></label>
+                <select asp-for="RatingID" class="form-select" asp-items="ViewBag.RatingID"></select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="LanguageID" class="form-label"></label>
+                <select asp-for="LanguageID" class="form-select" asp-items="ViewBag.LanguageID"></select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label asp-for="CountryID" class="form-label"></label>
+                <select asp-for="CountryID" class="form-select" asp-items="ViewBag.CountryID"></select>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="DirectorID" class="form-label"></label>
+            <select asp-for="DirectorID" class="form-select" asp-items="ViewBag.DirectorID"></select>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="ReleaseDate" class="form-label"></label>
+                <input asp-for="ReleaseDate" class="form-control" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Current Poster</label><br />
+                <img src="@posterPath" alt="Poster" class="img-fluid rounded shadow-sm" style="max-height: 240px;" />
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Upload New Poster</label>
+            <input type="file" name="image" class="form-control" accept="image/*" onchange="previewImage(this)" />
+            <img id="imagePreview" src="#" alt="Preview" class="mt-2 rounded shadow-sm" style="display:none; max-height:240px;" />
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Save Changes</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+        </div>
+    </form>
+</div>
+
+<!-- 🎞 Showtimes Section -->
+<div class="shadow-sm bg-white rounded p-4">
+    <h4 class="mb-3">📅 Showtimes</h4>
+    <a asp-action="Create" asp-controller="ShowTimes" asp-route-movieId="@Model.ID" class="btn btn-success mb-3">
+        + Add Showtime
+    </a>
+
+    @if (ViewBag.ShowTimes != null && ViewBag.ShowTimes.Count > 0)
+    {
+        <table class="table table-bordered table-striped table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Theater</th>
+                    <th>Auditorium</th>
+                    <th>Start Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var st in ViewBag.ShowTimes)
+                {
+                    <tr>
+                        <td>@st.TheaterName</td>
+                        <td>@st.AuditoriumName</td>
+                        <td>@st.StartTime.ToString("g")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">No showtimes scheduled for this movie yet.</p>
+    }
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script>
+        function previewImage(input) {
+            const preview = document.getElementById('imagePreview');
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
+}

@@ -1,0 +1,122 @@
+﻿@model DKMovies.Models.User
+@{
+    ViewData["Title"] = "Thông tin cá nhân";
+    Layout = "~/Views/Shared/_Login.cshtml";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg rounded-4">
+                <div class="card-body p-5">
+                    <h3 class="text-center mb-4 fw-bold text-primary">👤 Hồ sơ cá nhân</h3>
+
+                    <!-- ✅ Fixed: Đổi asp-action từ "edit" thành "Index" -->
+                    <form asp-action="Index" asp-controller="Users" method="post" enctype="multipart/form-data">
+                        <input type="hidden" asp-for="ID" />
+
+                        <!-- ✅ QUAN TRỌNG: Thêm hidden fields để preserve các giá trị quan trọng -->
+                        <input type="hidden" asp-for="EmailConfirmed" />
+                        <input type="hidden" asp-for="ConfirmationCode" />
+                        <input type="hidden" asp-for="CreatedAt" />
+
+                        <div class="text-center mb-4">
+                            <img id="imagePreview" src="~/images/users/@(Model.ProfileImagePath ?? "default.png")"
+                                 class="rounded-circle border border-3 shadow"
+                                 style="width: 140px; height: 140px; object-fit: cover;" />
+
+                            <div class="mt-3">
+                                <input type="file" name="ProfileImage" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this)" />
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Họ và tên</label>
+                                <input asp-for="FullName" class="form-control" placeholder="Nhập họ và tên" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Tên đăng nhập</label>
+                                <input asp-for="Username" class="form-control" readonly />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Email</label>
+                                <input asp-for="Email" class="form-control" readonly />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Số điện thoại</label>
+                                <input asp-for="Phone" class="form-control" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Ngày sinh</label>
+                                <input asp-for="BirthDate" type="date" class="form-control" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Giới tính</label>
+                                <select asp-for="Gender" class="form-select">
+                                    <option value="Male">Nam</option>
+                                    <option value="Female">Nữ</option>
+                                    <option value="Other">Khác</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Mật khẩu mới (nếu muốn đổi)</label>
+                                <input name="NewPassword" type="password" class="form-control" placeholder="Nhập mật khẩu mới" />
+                            </div>
+
+                            <div class="col-md-12">
+                                <div class="form-check form-switch mt-3">
+                                    <!-- ✅ Fixed: Đảm bảo checkbox hoạt động đúng -->
+                                    <input class="form-check-input" type="checkbox" asp-for="TwoFactorEnabled" id="TwoFactorEnabledSwitch" />
+                                    <label class="form-check-label" for="TwoFactorEnabledSwitch">Bật xác thực 2 bước (2FA)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-gradient-primary btn-lg">💾 Lưu thay đổi</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Optional toast message -->
+@if (!string.IsNullOrEmpty(ViewBag.ToastMessage))
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+        <div class="toast show align-items-center text-bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    @ViewBag.ToastMessage
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function previewImage(input) {
+            const preview = document.getElementById('imagePreview');
+            const file = input.files[0];
+
+            if (file && preview) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
+}

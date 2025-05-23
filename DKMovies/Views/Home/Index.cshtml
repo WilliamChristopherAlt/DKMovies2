@@ -1,0 +1,193 @@
+﻿@model List<DKMovies.Models.Movie>
+
+@{
+    ViewData["Title"] = "Trang chủ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var selectedGenre = ViewBag.SelectedGenre as string ?? "";
+    var genres = ViewBag.Genres as List<string> ?? new List<string>();
+}
+
+
+<style>
+    .movie-card {
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+
+        .movie-card:hover {
+            transform: scale(1.02);
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+    .movie-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(2px);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        padding: 1.5rem 1rem;
+        text-align: center;
+    }
+
+    .movie-card:hover .movie-overlay {
+        opacity: 1;
+    }
+
+    .movie-play-btn {
+        font-size: 2rem;
+        color: white;
+        background-color: rgba(255, 0, 0, 0.85);
+        padding: 0.5rem 1rem;
+        border-radius: 50%;
+        margin-top: 50px;
+        margin-bottom: 1rem;
+        z-index: 2;
+        box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+    }
+
+    .movie-title {
+        color: white;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-bottom: 0.75rem;
+        z-index: 2;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.9);
+    }
+
+    .movie-buttons {
+        z-index: 2;
+    }
+
+        .movie-buttons a {
+            margin: 0.25rem;
+        }
+</style>
+
+
+<section class="bg-dark py-5">
+    <div class="container">
+        <h2 class="text-white fw-bold text-center mb-4">🎬 Chọn phim bạn muốn xem</h2>
+
+        @if (Model != null && Model.Count > 0)
+        {
+            <div class="position-relative">
+                <!-- Nút scroll trái -->
+                <button class="btn btn-dark position-absolute top-50 start-0 translate-middle-y z-3 scroll-left" style="opacity: 0.6;">
+                    <i class="bi bi-chevron-left fs-4"></i>
+                </button>
+
+                <!-- Vùng phim scroll ngang -->
+                <div class="scroll-movie-row d-flex gap-3 overflow-auto pb-2 px-5" style="scrollbar-width: auto; white-space: nowrap;">
+                    @foreach (var movie in Model)
+                    {
+                        <div style="min-width: 220px;">
+                            <div class="movie-card position-relative">
+                                <img src="@Url.Content("~/images/movie_posters/" + movie.PosterImagePath)"
+                                     onerror="this.onerror=null;this.src='/images/default-poster.jpg';"
+                                     alt="@movie.Title"
+                                     style="width: 100%; height: 320px; object-fit: cover;" />
+
+                                <div class="movie-overlay">
+                                    <!-- Nút Play -->
+                                    <a href="#" class="movie-play-btn" data-bs-toggle="modal" data-bs-target="#trailerModal_@movie.ID">
+                                        <i class="bi bi-play-fill"></i>
+                                    </a>
+
+                                    <!-- Tên phim -->
+                                    <div class="movie-title">@movie.Title</div>
+
+                                    <!-- Nút hành động -->
+                                    <div class="movie-buttons d-flex flex-wrap justify-content-center">
+                                        <a href="@Url.Action("Details", "Home", new { id = movie.ID })" class="btn btn-danger btn-sm">Xem chi tiết</a>
+                                        <a href="@Url.Action("OrderTicket", "MoviesList", new { id = movie.ID })" class="btn btn-danger btn-sm">Mua vé</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal Trailer -->
+                            <div class="modal fade" id="trailerModal_@movie.ID" tabindex="-1" aria-labelledby="trailerLabel_@movie.ID" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="trailerLabel_@movie.ID">🎬 Trailer - @movie.Title</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            @if (!string.IsNullOrEmpty(movie.TrailerUrl))
+                                            {
+                                                <div class="ratio ratio-16x9">
+                                                    <iframe src="@movie.TrailerUrl.Replace("watch?v=", "embed/")"
+                                                            frameborder="0"
+                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                            allowfullscreen></iframe>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <p class="text-muted">Hiện chưa có trailer cho phim này.</p>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Nút scroll phải -->
+                <button class="btn btn-dark position-absolute top-50 end-0 translate-middle-y z-3 scroll-right" style="opacity: 0.6;">
+                    <i class="bi bi-chevron-right fs-4"></i>
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning text-center mt-4">Không có phim nào phù hợp với lựa chọn của bạn.</div>
+        }
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const scrollContainer = document.querySelector('.scroll-movie-row');
+            const btnLeft = document.querySelector('.scroll-left');
+            const btnRight = document.querySelector('.scroll-right');
+            const scrollAmount = 250;
+
+            btnLeft?.addEventListener("click", () => {
+                scrollContainer.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+            });
+
+            btnRight?.addEventListener("click", () => {
+                scrollContainer.scrollBy({ left: scrollAmount, behavior: "smooth" });
+            });
+
+            // Dừng trailer khi đóng modal
+            document.querySelectorAll('.modal').forEach(function (modal) {
+                modal.addEventListener('hidden.bs.modal', function () {
+                    const iframe = modal.querySelector('iframe');
+                    if (iframe) {
+                        const src = iframe.src;
+                        iframe.src = src; // reset video
+                    }
+                });
+            });
+        });
+    </script>
+}

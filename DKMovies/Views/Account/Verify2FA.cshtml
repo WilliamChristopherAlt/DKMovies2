@@ -1,0 +1,91 @@
+﻿@{
+    ViewData["Title"] = "Xác thực 2 bước";
+    Layout = "~/Views/Shared/_Login.cshtml";
+    var toastError = ViewData["ToastError"] as string;
+    var email = ViewBag.Email as string;
+}
+
+<style>
+    .verify-card {
+        max-width: 500px;
+        padding: 40px;
+        border-radius: 20px;
+        background: white;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .verify-heading {
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+
+    .verify-email {
+        color: #0d6efd;
+        word-break: break-word;
+    }
+
+    .verify-input {
+        font-size: 1.2rem;
+        padding: 1rem;
+        text-align: center;
+        letter-spacing: 4px;
+        font-weight: 500;
+    }
+
+    .verify-btn {
+        font-size: 1.2rem;
+        padding: 0.75rem;
+    }
+
+    .verify-footer a {
+        text-decoration: none;
+    }
+
+        .verify-footer a:hover {
+            text-decoration: underline;
+        }
+</style>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="verify-card text-center">
+            <h2 class="verify-heading mb-3">🔐 Xác thực 2 bước</h2>
+            <p>Mã xác thực đã được gửi đến:</p>
+            <p class="verify-email fw-bold">@email</p>
+            <p>Vui lòng nhập mã để tiếp tục đăng nhập vào tài khoản của bạn.</p>
+
+            <form asp-action="Verify2FA" asp-controller="Account" method="post">
+                <input type="hidden" name="email" value="@email" />
+
+                <div class="form-outline mb-4">
+                    <input type="text" id="code" name="code" class="form-control verify-input" required />
+                    <label class="form-label" for="code">Mã xác thực</label>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 verify-btn mb-3">🔓 XÁC THỰC</button>
+
+                <div class="verify-footer">
+                    <a href="@Url.Action("Login", "Account")">🔙 Quay lại đăng nhập</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(toastError))
+{
+    <div class="toast align-items-center text-bg-danger border-0 position-fixed top-0 end-0 m-3 show" role="alert">
+        <div class="d-flex">
+            <div class="toast-body">@toastError</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+    <script>
+        const toastEl = document.querySelector('.toast');
+        if (toastEl) {
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+            setTimeout(() => toast.hide(), 3000);
+        }
+    </script>
+}

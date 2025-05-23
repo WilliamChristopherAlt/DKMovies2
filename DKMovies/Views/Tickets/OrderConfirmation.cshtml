@@ -1,0 +1,83 @@
+﻿@model DKMovies.Models.Ticket
+
+@{
+    ViewData["Title"] = "Order Confirmation";
+    var posterPath = string.IsNullOrWhiteSpace(Model.ShowTime.Movie.PosterImagePath)
+        ? Url.Content("~/images/movie_posters/default.jpg")
+        : Url.Content($"~/images/movie_posters/{Model.ShowTime.Movie.PosterImagePath}");
+}
+
+<div class="container mt-5 mb-5">
+    <div class="row">
+        <!-- Poster -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm">
+                <img src="@posterPath" class="card-img-top" alt="@Model.ShowTime.Movie.Title poster" />
+            </div>
+        </div>
+
+        <!-- Ticket Info -->
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title mb-3 text-success">🎟 Reservation Confirmed</h3>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item"><strong>Movie:</strong> @Model.ShowTime.Movie.Title</li>
+                        <li class="list-group-item"><strong>Theater:</strong> @Model.ShowTime.Auditorium.Theater.Name</li>
+                        <li class="list-group-item"><strong>Auditorium:</strong> @Model.ShowTime.Auditorium.Name</li>
+                        <li class="list-group-item"><strong>Show Time:</strong> @Model.ShowTime.StartTime.ToString("f")</li>
+                        <li class="list-group-item">
+                            <strong>Seats:</strong>
+                            @string.Join(", ", Model.TicketSeats.Select(ts => ts.Seat.RowLabel + ts.Seat.SeatNumber))
+                        </li>
+                    </ul>
+
+                    @if (Model.OrderItems != null && Model.OrderItems.Any())
+                    {
+                        <h5 class="mt-4 mb-2">🍿 Concessions</h5>
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Qty</th>
+                                    <th>Unit Price</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.OrderItems)
+                                {
+                                    <tr>
+                                        <td>@item.TheaterConcession.Concession.Name</td>
+                                        <td>@item.Quantity</td>
+                                        <td>$@($"{item.PriceAtPurchase:F2}")</td>
+                                        <td>$@($"{item.PriceAtPurchase * item.Quantity:F2}")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+
+                    <div class="alert alert-info d-flex justify-content-between align-items-center mt-4">
+                        <strong>Total Price:</strong>
+                        <span class="fs-5 fw-bold">$@($"{Model.TotalPrice:F2}")</span>
+                    </div>
+
+                    <div class="d-flex gap-3 mt-4">
+                        <form asp-action="CancelTicket" asp-controller="Tickets" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="ticketId" value="@Model.ID" />
+                            <button type="submit" class="btn btn-outline-danger fw-semibold border-2">
+                                <i class="bi bi-x-circle me-1"></i> Cancel Ticket
+                            </button>
+                        </form>
+
+                        <a class="btn btn-outline-secondary fw-semibold border-2" href="@Url.Action("UserTickets", "Tickets")">
+                            <i class="bi bi-clock-history me-1"></i> View Ticket History
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
