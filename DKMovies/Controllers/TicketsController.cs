@@ -174,7 +174,8 @@ public class TicketsController : Controller
         _context.SaveChanges();
 
         TempData["Success"] = "Seats reserved successfully!";
-        return RedirectToAction("OrderConfirmation", new { ticketId = ticket.ID });
+        //return RedirectToAction("OrderConfirmation", new { ticketId = ticket.ID });
+        return RedirectToAction("CreateCheckoutSession", "Payment", new { ticketId = ticket.ID});
     }
 
 

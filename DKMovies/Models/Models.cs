@@ -388,6 +388,7 @@ namespace DKMovies.Models
     public enum TicketStatus
     {
         PENDING,
+        PAID,
         CONFIRMED,
         CANCELLED
     }
@@ -457,23 +458,25 @@ namespace DKMovies.Models
         public Seat Seat { get; set; }
     }
 
-    // 14. PAYMENT METHODS
-    public class PaymentMethod
+    public enum PaymentStatus
     {
-        [Key]
-        [Display(Name = "Payment Method ID")]
-        public int ID { get; set; }
-
-        [Required, MaxLength(50)]
-        [Display(Name = "Payment Method Name")]
-        public string Name { get; set; }
-
-        [MaxLength(255)]
-        [Display(Name = "Description")]
-        public string Description { get; set; }
-
-        public ICollection<TicketPayment> TicketPayments { get; set; }
+        PENDING,
+        COMPLETED,
+        FAILED
     }
+
+    public enum PaymentMethod
+    {
+        CARD,
+        AFTERPAY_CLEARPAY,
+        ALIPAY,
+        GRABPAY,
+        IDEAL,
+        KONBINI,
+        SEPA_DEBIT,
+        SOFORT
+    }
+
 
     // 15. TICKET PAYMENTS
     public class TicketPayment
@@ -488,15 +491,13 @@ namespace DKMovies.Models
         [ForeignKey("TicketID")]
         public Ticket Ticket { get; set; }
 
-        [Display(Name = "Payment Method ID")]
-        public int MethodID { get; set; }
+        [Required]
+        [Display(Name = "Payment Method")]
+        public PaymentMethod Method { get; set; }
 
-        [ForeignKey("MethodID")]
-        public PaymentMethod PaymentMethod { get; set; }
-
-        [Required, MaxLength(50)]
+        [Required]
         [Display(Name = "Payment Status")]
-        public string PaymentStatus { get; set; }
+        public PaymentStatus PaymentStatus { get; set; }
 
         [Display(Name = "Paid Amount")]
         public decimal? PaidAmount { get; set; }
@@ -504,6 +505,7 @@ namespace DKMovies.Models
         [Display(Name = "Paid At")]
         public DateTime? PaidAt { get; set; }
     }
+
 
     // 16. EMPLOYEE ROLES
     public class EmployeeRole

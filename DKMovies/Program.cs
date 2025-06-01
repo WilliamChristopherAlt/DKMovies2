@@ -1,27 +1,21 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using DKMovies.Models;
 using DKMovies.Controllers;
+using DKMovies.Services; // Add this using statement
+using Stripe;
+using DKMovies.ViewModels;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-//builder.Services.AddControllersWithViews();
-
 builder.Services.AddScoped<LayoutDataFilter>();
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<LayoutDataFilter>();
 });
 
-
 // Add session service to handle login/logout state
 builder.Services.AddDistributedMemoryCache(); // Enable memory cache for session storage
-//builder.Services.AddSession(options =>
-//{
-//    options.IdleTimeout = TimeSpan.FromMinutes(30); // Set session timeout
-//    options.Cookie.HttpOnly = true; // Ensure the session cookie is only accessible via HTTP
-//    options.Cookie.IsEssential = true; // Make the session cookie essential for the app to function
-//});
 
 // Add DbContext for SQL Server connection
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -42,8 +36,22 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// Configure Stripe settings
+builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("Stripe"));
+
+// Configure Email settings
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+
+// Register Email Service
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+// Add logging
+builder.Services.AddLogging();
 
 var app = builder.Build();
+
+// Configure Stripe API Key
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -55,12 +63,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
-// Add session middleware before routing
-//app.UseSession();
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -70,3 +73,10 @@ app.MapControllerRoute(
 
 // Run the application
 app.Run();
+
+// Stripe configuration class
+public class StripeSettings
+{
+    public string PublishableKey { get; set; } = string.Empty;
+    public string SecretKey { get; set; } = string.Empty;
+}
