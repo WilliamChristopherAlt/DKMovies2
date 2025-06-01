@@ -74,9 +74,3 @@ app.MapControllerRoute(
 // Run the application
 app.Run();
 
-// Stripe configuration class
-public class StripeSettings
-{
-    public string PublishableKey { get; set; } = string.Empty;
-    public string SecretKey { get; set; } = string.Empty;
-} 
