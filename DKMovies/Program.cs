@@ -81,7 +81,4 @@ public class StripeSettings
     public string SecretKey { get; set; } = string.Empty;
 }
 
-//"Stripe": {
-//    "SecretKey": "sk_test_51RS6lmFKVGTF4ZqhXdO7kcj0ybZcpa6RlANomeTJSUSbQISPnTH7RgCHi669oSFLRSFBAsjBSFEBwyxNTkGjs9ur00SPy71dHt",
-//    "PublishableKey": "pk_test_51RS6lmFKVGTF4ZqhF2BTlPJW4TUZ0dTzH3hhJVSWGFrdneFQPacyPQ58Lk5KYDna9YghN7nxihjPBHNVVqospHaY007TZN1yTs"
-//  }
+// "SecretKey": "sk_test_51RS6lmFKVGTF4ZqhXdO7kcj0ybZcpa6RlANomeTJSUSbQISPnTH7RgCHi669oSFLRSFBAsjBSFEBwyxNTkGjs9ur00SPy71dHt",
