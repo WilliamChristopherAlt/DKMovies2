@@ -80,5 +80,3 @@ public class StripeSettings
     public string PublishableKey { get; set; } = string.Empty;
     public string SecretKey { get; set; } = string.Empty;
 }
-
-// "SecretKey": "sk_test_51RS6lmFKVGTF4ZqhXdO7kcj0ybZcpa6RlANomeTJSUSbQISPnTH7RgCHi669oSFLRSFBAsjBSFEBwyxNTkGjs9ur00SPy71dHt",
