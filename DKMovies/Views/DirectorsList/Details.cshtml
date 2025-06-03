@@ -1,9 +1,11 @@
 ﻿@model DKMovies.Models.Director
+
 @{
     ViewData["Title"] = Model.FullName;
     var imagePath = string.IsNullOrWhiteSpace(Model.ProfileImagePath)
         ? Url.Content("~/images/directors/default.jpg")
         : Url.Content($"~/images/directors/{Model.ProfileImagePath}");
+    var directedMovies = Model.Movies?.ToList() ?? new List<DKMovies.Models.Movie>();
 }
 
 <div class="container mt-5">
@@ -21,41 +23,117 @@
 
             <div class="mb-2">
                 <strong>Date of Birth:</strong>
-                @(Model.DateOfBirth.HasValue ? Model.DateOfBirth.Value.ToString("MMMM d, yyyy") : "N/A")
+                @(Model.DateOfBirth?.ToString("MMMM d, yyyy") ?? "N/A")
             </div>
 
             <div class="mb-2">
                 <strong>Country:</strong>
-                @(Model.Country != null ? Model.Country.Name : "N/A")
+                @(Model.Country?.Name ?? "N/A")
             </div>
 
             <div class="mb-3">
                 <strong>Biography:</strong>
                 <p>@Model.Biography</p>
             </div>
-
-            <h4>Directed Movies</h4>
-            @if (Model.Movies != null && Model.Movies.Any())
-            {
-                <ul class="list-group">
-                    @foreach (var movie in Model.Movies)
-                    {
-                        <li class="list-group-item">
-                            <a asp-controller="MoviesList" asp-action="Details" asp-route-id="@movie.ID" class="text-decoration-none">
-                                @movie.Title
-                            </a>
-                        </li>
-                    } 
-                </ul>
-            }
-            else
-            {
-                <p>No movies found for this director.</p>
-            }
         </div>
     </div>
 
-    <a asp-controller="MoviesList" asp-action="Index" class="btn btn-link text-dark mt-3">
+    <!-- Directed Movies Section -->
+    <div class="mt-5">
+        <h3 class="text-dark mb-4">Directed Movies</h3>
+
+        @if (directedMovies.Any())
+        {
+            @if (directedMovies.Count == 1)
+            {
+                var movie = directedMovies.First();
+                var posterPath = string.IsNullOrWhiteSpace(movie.PosterImagePath)
+                ? Url.Content("~/images/movie_posters/default.jpg")
+                : Url.Content($"~/images/movie_posters/{movie.PosterImagePath}");
+
+                <div class="d-flex justify-content-center">
+                    <div class="card" style="width: 300px;">
+                        <a asp-controller="MoviesList" asp-action="Details" asp-route-id="@movie.ID" class="text-decoration-none">
+                            <img src="@posterPath" class="card-img-top" alt="@movie.Title" style="height: 400px; object-fit: cover;">
+                            <div class="card-body text-center">
+                                <h6 class="card-title text-dark">@movie.Title</h6>
+                                <small class="text-muted">@(movie.ReleaseDate?.Year.ToString() ?? "N/A")</small>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Carousel for multiple movies -->
+                <div id="directedMoviesCarousel" class="carousel slide" data-bs-ride="false">
+                    <div class="carousel-inner">
+                        @{
+                            int moviesPerSlide = 4;
+                            int totalSlides = (int)Math.Ceiling((double)directedMovies.Count / moviesPerSlide);
+                        }
+
+                        @for (int slideIndex = 0; slideIndex < totalSlides; slideIndex++)
+                        {
+                            var moviesInSlide = directedMovies.Skip(slideIndex * moviesPerSlide).Take(moviesPerSlide);
+
+                            <div class="carousel-item @(slideIndex == 0 ? "active" : "")">
+                                <div class="row justify-content-center">
+                                    @foreach (var movie in moviesInSlide)
+                                    {
+                                        var posterPath = string.IsNullOrWhiteSpace(movie.PosterImagePath)
+                                        ? Url.Content("~/images/movie_posters/default.jpg")
+                                        : Url.Content($"~/images/movie_posters/{movie.PosterImagePath}");
+
+                                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                                            <div class="card h-100 shadow-sm">
+                                                <a asp-controller="MoviesList" asp-action="Details" asp-route-id="@movie.ID" class="text-decoration-none">
+                                                    <img src="@posterPath" class="card-img-top" alt="@movie.Title" style="height: 300px; object-fit: cover;">
+                                                    <div class="card-body text-center">
+                                                        <h6 class="card-title text-dark mb-1" style="font-size: 0.9rem;">@movie.Title</h6>
+                                                        <small class="text-muted">@(movie.ReleaseDate?.Year.ToString() ?? "N/A")</small>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (totalSlides > 1)
+                    {
+                        <button class="carousel-control-prev" type="button" data-bs-target="#directedMoviesCarousel" data-bs-slide="prev" style="width: 5%;">
+                            <span class="carousel-control-prev-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#directedMoviesCarousel" data-bs-slide="next" style="width: 5%;">
+                            <span class="carousel-control-next-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+
+                        <div class="carousel-indicators" style="position: relative; margin-top: 20px;">
+                            @for (int i = 0; i < totalSlides; i++)
+                            {
+                                <button type="button" data-bs-target="#directedMoviesCarousel" data-bs-slide-to="@i"
+                                        class="@(i == 0 ? "active" : "")" aria-current="@(i == 0 ? "true" : "")"
+                                        aria-label="Slide @(i + 1)" style="background-color: #6c757d;"></button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No movies found for this director.
+            </div>
+        }
+    </div>
+
+    <a asp-controller="MoviesList" asp-action="Index" class="btn btn-link text-dark mt-4">
         <i class="bi bi-arrow-left"></i> Back to Movies
     </a>
 </div>

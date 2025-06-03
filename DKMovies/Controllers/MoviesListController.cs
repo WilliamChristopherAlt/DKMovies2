@@ -11,10 +11,27 @@ using DKMovies.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using System.Data;
 using Microsoft.Data.SqlClient;
+using System.Text.Json;
+
 using MathNet.Numerics.LinearAlgebra;
+using Microsoft.ML;
+using Microsoft.ML.Data;
 
 namespace DKMovies.Controllers
 {
+    public class MovieFeatures
+    {
+        public int MovieId { get; set; }
+        public string Title { get; set; }
+        public string CombinedFeatures { get; set; }
+    }
+
+    public class MovieVectorData
+    {
+        public Dictionary<int, float[]> MovieVectors { get; set; }
+        public DateTime LastUpdated { get; set; }
+    }
+
     public class LayoutDataFilter : IAsyncActionFilter
     {
         private readonly ApplicationDbContext _context;
@@ -52,15 +69,313 @@ namespace DKMovies.Controllers
     public class MoviesListController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _webHostEnvironment;
         private const int PageSize = 30;
 
-        public MoviesListController(ApplicationDbContext context)
+        // TEST VARIABLE - Set to true to recompute matrix, false to use cached version
+        //private const bool RECOMPUTE_MATRIX = true;
+        private const bool RECOMPUTE_MATRIX = false;
+
+        private readonly string _matrixFilePath;
+
+        public MoviesListController(ApplicationDbContext context, IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
+            _webHostEnvironment = webHostEnvironment;
+            _matrixFilePath = Path.Combine(_webHostEnvironment.WebRootPath, "movie_vectors.json");
+        }
+
+        private List<MovieFeatures> PrepareMovieData()
+        {
+            var movies = _context.Movies
+                .Include(m => m.Director)
+                .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
+                .ToList();
+
+            var movieFeaturesList = movies.Select(m => new MovieFeatures
+            {
+                MovieId = m.ID,
+                Title = m.Title,
+                // Improved feature combination with better text preprocessing
+                CombinedFeatures = string.Join(" ", new[]
+                {
+            m.Title?.ToLower().Trim() ?? "",
+            m.Description?.ToLower().Trim() ?? "",
+            m.Director?.FullName?.ToLower().Trim() ?? "",
+            string.Join(" ", m.MovieGenres.Select(g => g.Genre.Name?.ToLower().Trim() ?? ""))
+        }.Where(s => !string.IsNullOrWhiteSpace(s)))
+            }).Where(mf => !string.IsNullOrWhiteSpace(mf.CombinedFeatures))
+              .ToList();
+
+            return movieFeaturesList;
+        }
+
+        private Dictionary<int, float[]> ComputeTfIdfVectors(List<MovieFeatures> movieFeaturesList)
+        {
+            try
+            {
+                var mlContext = new MLContext(seed: 1); // Fixed seed for consistency
+
+                if (!movieFeaturesList.Any())
+                    return new Dictionary<int, float[]>();
+
+                var data = mlContext.Data.LoadFromEnumerable(movieFeaturesList);
+
+                // Improved text featurization pipeline
+                var pipeline = mlContext.Transforms.Text.NormalizeText(
+                        outputColumnName: "NormalizedText",
+                        inputColumnName: nameof(MovieFeatures.CombinedFeatures),
+                        caseMode: Microsoft.ML.Transforms.Text.TextNormalizingEstimator.CaseMode.Lower,
+                        keepDiacritics: false,
+                        keepPunctuations: false,
+                        keepNumbers: true)
+                    .Append(mlContext.Transforms.Text.TokenizeIntoWords(
+                        outputColumnName: "Tokens",
+                        inputColumnName: "NormalizedText"))
+                    .Append(mlContext.Transforms.Text.RemoveDefaultStopWords(
+                        outputColumnName: "TokensWithoutStopWords",
+                        inputColumnName: "Tokens"))
+                    .Append(mlContext.Transforms.Text.FeaturizeText(
+                        outputColumnName: "Features",
+                        inputColumnName: "TokensWithoutStopWords"));
+
+                var model = pipeline.Fit(data);
+                var transformedData = model.Transform(data);
+
+                // Get the feature vectors
+                var featuresColumn = transformedData.GetColumn<float[]>("Features").ToArray();
+                var movieIds = transformedData.GetColumn<int>(nameof(MovieFeatures.MovieId)).ToArray();
+
+                var movieVectors = new Dictionary<int, float[]>();
+                for (int i = 0; i < movieIds.Length; i++)
+                {
+                    if (featuresColumn[i] != null && featuresColumn[i].Length > 0)
+                    {
+                        movieVectors[movieIds[i]] = featuresColumn[i];
+                    }
+                }
+
+                return movieVectors;
+            }
+            catch (Exception ex)
+            {
+                // Log the exception if you have logging
+                System.Diagnostics.Debug.WriteLine($"Error computing TF-IDF vectors: {ex.Message}");
+                return new Dictionary<int, float[]>();
+            }
+        }
+
+        private async Task<Dictionary<int, float[]>> GetOrComputeMovieVectors()
+        {
+            try
+            {
+                // Check if we should recompute or if cached file doesn't exist
+                if (RECOMPUTE_MATRIX || !System.IO.File.Exists(_matrixFilePath))
+                {
+                    System.Diagnostics.Debug.WriteLine("Computing new TF-IDF matrix...");
+
+                    var movieFeaturesList = PrepareMovieData();
+                    var movieVectors = ComputeTfIdfVectors(movieFeaturesList);
+
+                    // Save to file
+                    await SaveMovieVectorsToFile(movieVectors);
+
+                    System.Diagnostics.Debug.WriteLine($"TF-IDF matrix computed and saved. Total vectors: {movieVectors.Count}");
+                    return movieVectors;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("Loading cached TF-IDF matrix...");
+                    return await LoadMovieVectorsFromFile();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetOrComputeMovieVectors: {ex.Message}");
+                return new Dictionary<int, float[]>();
+            }
+        }
+
+        private async Task SaveMovieVectorsToFile(Dictionary<int, float[]> movieVectors)
+        {
+            try
+            {
+                // Ensure the wwwroot directory exists
+                var wwwrootPath = _webHostEnvironment.WebRootPath;
+                if (!Directory.Exists(wwwrootPath))
+                {
+                    Directory.CreateDirectory(wwwrootPath);
+                }
+
+                var vectorData = new MovieVectorData
+                {
+                    MovieVectors = movieVectors,
+                    LastUpdated = DateTime.UtcNow
+                };
+
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = false // Compact JSON to save space
+                };
+
+                var json = JsonSerializer.Serialize(vectorData, options);
+                await System.IO.File.WriteAllTextAsync(_matrixFilePath, json);
+
+                System.Diagnostics.Debug.WriteLine($"Movie vectors saved to: {_matrixFilePath}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving movie vectors to file: {ex.Message}");
+            }
+        }
+
+        private async Task<Dictionary<int, float[]>> LoadMovieVectorsFromFile()
+        {
+            try
+            {
+                if (!System.IO.File.Exists(_matrixFilePath))
+                {
+                    System.Diagnostics.Debug.WriteLine("Matrix file does not exist, will compute new one.");
+                    return new Dictionary<int, float[]>();
+                }
+
+                var json = await System.IO.File.ReadAllTextAsync(_matrixFilePath);
+                var vectorData = JsonSerializer.Deserialize<MovieVectorData>(json);
+
+                if (vectorData?.MovieVectors != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Loaded {vectorData.MovieVectors.Count} movie vectors from cache (Last updated: {vectorData.LastUpdated})");
+                    return vectorData.MovieVectors;
+                }
+
+                return new Dictionary<int, float[]>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading movie vectors from file: {ex.Message}");
+                return new Dictionary<int, float[]>();
+            }
+        }
+
+        private float ComputeCosineSimilarity(float[] vectorA, float[] vectorB)
+        {
+            if (vectorA == null || vectorB == null || vectorA.Length != vectorB.Length || vectorA.Length == 0)
+                return 0;
+
+            float dotProduct = 0;
+            float magnitudeA = 0;
+            float magnitudeB = 0;
+
+            for (int i = 0; i < vectorA.Length; i++)
+            {
+                dotProduct += vectorA[i] * vectorB[i];
+                magnitudeA += vectorA[i] * vectorA[i];
+                magnitudeB += vectorB[i] * vectorB[i];
+            }
+
+            magnitudeA = (float)Math.Sqrt(magnitudeA);
+            magnitudeB = (float)Math.Sqrt(magnitudeB);
+
+            if (magnitudeA == 0 || magnitudeB == 0)
+                return 0;
+
+            return dotProduct / (magnitudeA * magnitudeB);
+        }
+
+        private async Task<List<Movie>> GetSimilarMovies(int movieId, Dictionary<int, float[]> movieVectors, int topN = 10)
+        {
+            try
+            {
+                if (!movieVectors.ContainsKey(movieId) || movieVectors.Count <= 1)
+                    return new List<Movie>();
+
+                var targetVector = movieVectors[movieId];
+                var similarityScores = new List<(int MovieId, float Score)>();
+
+                foreach (var kvp in movieVectors)
+                {
+                    if (kvp.Key == movieId)
+                        continue;
+
+                    var score = ComputeCosineSimilarity(targetVector, kvp.Value);
+                    if (score > 0) // Only include movies with positive similarity
+                    {
+                        similarityScores.Add((kvp.Key, score));
+                    }
+                }
+
+                if (!similarityScores.Any())
+                {
+                    // Fallback: return movies from same genre
+                    var currentMovie = await _context.Movies
+                        .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
+                        .FirstOrDefaultAsync(m => m.ID == movieId);
+
+                    if (currentMovie?.MovieGenres?.Any() == true)
+                    {
+                        var genreIds = currentMovie.MovieGenres.Select(mg => mg.GenreID).ToList();
+                        return await _context.Movies
+                            .Include(m => m.MovieGenres)
+                            .Where(m => m.ID != movieId && m.MovieGenres.Any(mg => genreIds.Contains(mg.GenreID)))
+                            .Take(topN)
+                            .ToListAsync();
+                    }
+
+                    // Final fallback: return recent movies
+                    return await _context.Movies
+                        .Where(m => m.ID != movieId)
+                        .OrderByDescending(m => m.ReleaseDate)
+                        .Take(topN)
+                        .ToListAsync();
+                }
+
+                var topSimilarMovieIds = similarityScores
+                    .OrderByDescending(s => s.Score)
+                    .Take(topN)
+                    .Select(s => s.MovieId)
+                    .ToList();
+
+                var similarMovies = await _context.Movies
+                    .Where(m => topSimilarMovieIds.Contains(m.ID))
+                    .ToListAsync();
+
+                // Maintain the order from similarity scores
+                var orderedSimilarMovies = topSimilarMovieIds
+                    .Select(id => similarMovies.FirstOrDefault(m => m.ID == id))
+                    .Where(m => m != null)
+                    .ToList();
+
+                return orderedSimilarMovies;
+            }
+            catch (Exception ex)
+            {
+                // Log the exception if you have logging
+                System.Diagnostics.Debug.WriteLine($"Error getting similar movies: {ex.Message}");
+
+                // Fallback to genre-based similarity
+                var currentMovie = await _context.Movies
+                    .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
+                    .FirstOrDefaultAsync(m => m.ID == movieId);
+
+                if (currentMovie?.MovieGenres?.Any() == true)
+                {
+                    var genreIds = currentMovie.MovieGenres.Select(mg => mg.GenreID).ToList();
+                    return await _context.Movies
+                        .Include(m => m.MovieGenres)
+                        .Where(m => m.ID != movieId && m.MovieGenres.Any(mg => genreIds.Contains(mg.GenreID)))
+                        .Take(topN)
+                        .ToListAsync();
+                }
+
+                return new List<Movie>();
+            }
         }
 
         public async Task<IActionResult> Index(int page = 1)
         {
+            // Pre-compute and cache movie vectors if needed
+            await GetOrComputeMovieVectors();
+
             // --- Hot Movies Based on Ticket Sales ---
             var hotMovieQuery = await _context.Tickets
                 .Include(t => t.ShowTime)
@@ -356,18 +671,59 @@ namespace DKMovies.Controllers
                 .Include(m => m.Language)
                 .Include(m => m.Rating)
                 .Include(m => m.Director)
-                .Include(m => m.MovieGenres)
-                    .ThenInclude(mg => mg.Genre)
-                .Include(m => m.Reviews)
-                    .ThenInclude(r => r.User)
+                .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
+                .Include(m => m.Reviews.Where(r => r.IsApproved)).ThenInclude(r => r.User)
                 .FirstOrDefaultAsync(m => m.ID == id);
 
             if (movie == null)
                 return NotFound();
 
-            var averageRating = movie.Reviews.Any() ? movie.Reviews.Average(r => r.Rating) : 0;
+            // Get similar movies using cached TF-IDF vectors
+            List<Movie> similarMovies = new List<Movie>();
+            try
+            {
+                var movieVectors = await LoadMovieVectorsFromFile();
+                if (movieVectors.Any())
+                {
+                    similarMovies = await GetSimilarMovies(movie.ID, movieVectors, 8); // Get 8 similar movies
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the exception if you have logging
+                System.Diagnostics.Debug.WriteLine($"Error in similarity computation: {ex.Message}");
+            }
+
+            // If no similar movies found, fallback to genre-based recommendations
+            if (!similarMovies.Any() && movie.MovieGenres.Any())
+            {
+                var genreIds = movie.MovieGenres.Select(mg => mg.GenreID).ToList();
+                similarMovies = await _context.Movies
+                    .Include(m => m.MovieGenres)
+                    .Where(m => m.ID != movie.ID && m.MovieGenres.Any(mg => genreIds.Contains(mg.GenreID)))
+                    .OrderByDescending(m => m.ReleaseDate)
+                    .Take(8)
+                    .ToListAsync();
+            }
+
+            // Final fallback - recent movies from same country or language
+            if (!similarMovies.Any())
+            {
+                similarMovies = await _context.Movies
+                    .Where(m => m.ID != movie.ID &&
+                               (m.CountryID == movie.CountryID || m.LanguageID == movie.LanguageID))
+                    .OrderByDescending(m => m.ReleaseDate)
+                    .Take(8)
+                    .ToListAsync();
+            }
+
+            ViewData["SimilarMovies"] = similarMovies;
+
+            // Calculate average rating
+            var averageRating = movie.Reviews.Any() ? movie.Reviews.Where(r => r.IsApproved).Average(r => r.Rating) : 0;
             ViewData["AverageRating"] = averageRating;
 
+            // Check if user has movie in watchlist
             bool isInWatchlist = false;
             if (User.Identity.IsAuthenticated && User.IsInRole("User"))
             {
@@ -375,155 +731,102 @@ namespace DKMovies.Controllers
                 isInWatchlist = await _context.WatchList
                     .AnyAsync(w => w.UserID == userId && w.MovieID == id);
             }
-
             ViewData["IsInWatchlist"] = isInWatchlist;
 
+            // Check if user has already reviewed this movie
             bool hasUserReviewed = false;
-
             if (User.Identity?.IsAuthenticated == true && User.IsInRole("User"))
             {
                 var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
                 hasUserReviewed = await _context.Reviews
                     .AnyAsync(r => r.MovieID == id && r.UserID == userId);
             }
-
             ViewData["HasUserReviewed"] = hasUserReviewed;
 
             return View(movie);
         }
 
-        public IActionResult OrderTicket(int id, string search, string date, int? theaterId)
+        [HttpGet]
+        public async Task<IActionResult> LoadMore(int movieId, int skip, int take)
         {
-            var movie = _context.Movies.Find(id);
-            if (movie == null) return NotFound();
+            var reviews = await _context.Reviews
+                .Where(r => r.MovieID == movieId)
+                .Include(r => r.User)
+                .OrderByDescending(r => r.CreatedAt)
+                .Skip(skip)
+                .Take(take)
+                .ToListAsync();
 
-            var now = DateTime.Now;
+            var hasMore = await _context.Reviews
+                .Where(r => r.MovieID == movieId)
+                .CountAsync() > skip + take;
 
-            var allShowtimes = _context.ShowTimes
-                .Include(s => s.Auditorium)
-                    .ThenInclude(a => a.Theater)
-                .Where(s => s.MovieID == id && s.StartTime >= now)
-                .ToList();
+            var reviewData = reviews.Select(r => new {
+                username = r.User.Username,
+                userProfileImage = r.User.ProfileImagePath,
+                rating = r.Rating,
+                comment = r.Comment,
+                createdAt = r.CreatedAt.ToString("MMMM d, yyyy")
+            });
 
-            ViewData["Movie"] = movie;
-            ViewData["Search"] = search;
-            ViewData["Date"] = date;
-            ViewData["SelectedTheaterId"] = theaterId;
-
-            return View(allShowtimes);
+            return Json(new { success = true, reviews = reviewData, hasMore });
         }
 
-        public IActionResult OrderTicketDetails(int id)
+        // Optional: Action to manually refresh the matrix cache
+        [HttpPost]
+        public async Task<IActionResult> RefreshMovieMatrix()
         {
-            var showtime = _context.ShowTimes
-                .Include(s => s.Movie)
-                .Include(s => s.Auditorium)
-                    .ThenInclude(a => a.Seats)
-                .FirstOrDefault(s => s.ID == id);
-
-            if (showtime == null)
+            try
             {
-                TempData["Error"] = "Showtime not found.";
-                return RedirectToAction("OrderTicket", new { id });
-            }
+                var movieFeaturesList = PrepareMovieData();
+                var movieVectors = ComputeTfIdfVectors(movieFeaturesList);
+                await SaveMovieVectorsToFile(movieVectors);
 
-            if (showtime.Auditorium == null)
+                return Json(new { success = true, message = $"Matrix refreshed successfully. {movieVectors.Count} vectors computed." });
+            }
+            catch (Exception ex)
             {
-                TempData["Error"] = "Auditorium information is missing.";
-                return RedirectToAction("OrderTicket", new { id });
+                return Json(new { success = false, message = $"Error refreshing matrix: {ex.Message}" });
             }
-
-            var seats = showtime.Auditorium.Seats?.ToList() ?? new List<Seat>();
-
-            var takenSeats = _context.TicketSeats
-                .Include(ts => ts.Ticket)
-                .Where(ts => ts.Ticket != null && ts.Ticket.ShowTimeID == id)
-                .Select(ts => ts.SeatID)
-                .ToList();
-
-            ViewData["TakenSeats"] = takenSeats;
-            ViewData["ShowTime"] = showtime;
-
-            return View(seats);
         }
 
-        [Authorize(Roles = "User")]
-        public IActionResult ConfirmOrder(int ShowTimeID, List<int> SelectedSeats)
+        // Optional: Action to get matrix info
+        [HttpGet]
+        public async Task<IActionResult> GetMatrixInfo()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            try
             {
-                TempData["Error"] = "User session is invalid.";
-                return RedirectToAction("Login", "Account");
+                if (System.IO.File.Exists(_matrixFilePath))
+                {
+                    var json = await System.IO.File.ReadAllTextAsync(_matrixFilePath);
+                    var vectorData = JsonSerializer.Deserialize<MovieVectorData>(json);
+
+                    return Json(new
+                    {
+                        exists = true,
+                        lastUpdated = vectorData?.LastUpdated,
+                        vectorCount = vectorData?.MovieVectors?.Count ?? 0,
+                        recomputeFlag = RECOMPUTE_MATRIX
+                    });
+                }
+                else
+                {
+                    return Json(new
+                    {
+                        exists = false,
+                        recomputeFlag = RECOMPUTE_MATRIX
+                    });
+                }
             }
-
-            var showTime = _context.ShowTimes
-                .Include(st => st.Tickets)
-                    .ThenInclude(t => t.TicketSeats)
-                .FirstOrDefault(st => st.ID == ShowTimeID);
-
-            if (showTime == null)
+            catch (Exception ex)
             {
-                return NotFound("ShowTime not found.");
+                return Json(new
+                {
+                    exists = false,
+                    error = ex.Message,
+                    recomputeFlag = RECOMPUTE_MATRIX
+                });
             }
-
-            var availableSeats = _context.Seats
-                .Where(s => SelectedSeats.Contains(s.ID))
-                .ToList();
-
-            var takenSeatIds = showTime.Tickets
-                .SelectMany(t => t.TicketSeats)
-                .Select(ts => ts.SeatID)
-                .ToHashSet();
-
-            var alreadyTaken = SelectedSeats.Intersect(takenSeatIds).ToList();
-            if (alreadyTaken.Any())
-            {
-                TempData["Error"] = "Some seats have already been booked. Please try again.";
-                return RedirectToAction("OrderTicketDetails", new { id = ShowTimeID });
-            }
-
-            var ticket = new Ticket
-            {
-                UserID = userId,
-                ShowTimeID = ShowTimeID,
-                PurchaseTime = DateTime.Now,
-            };
-
-            _context.Tickets.Add(ticket);
-            _context.SaveChanges();
-
-            var ticketSeats = availableSeats.Select(seat => new TicketSeat
-            {
-                TicketID = ticket.ID,
-                SeatID = seat.ID
-            }).ToList();
-
-            _context.TicketSeats.AddRange(ticketSeats);
-            _context.SaveChanges();
-
-            TempData["Success"] = "Seats reserved successfully!";
-            return RedirectToAction("OrderConfirmation", new { ticketId = ticket.ID });
-        }
-
-        public IActionResult OrderConfirmation(int ticketId)
-        {
-            var ticket = _context.Tickets
-                .Include(t => t.ShowTime)
-                    .ThenInclude(st => st.Movie)
-                .Include(t => t.ShowTime)
-                    .ThenInclude(st => st.Auditorium)
-                        .ThenInclude(a => a.Theater)
-                .Include(t => t.TicketSeats)
-                    .ThenInclude(ts => ts.Seat)
-                .FirstOrDefault(t => t.ID == ticketId);
-
-            if (ticket == null)
-            {
-                return NotFound("Ticket not found.");
-            }
-
-            return View(ticket);
         }
     }
 }

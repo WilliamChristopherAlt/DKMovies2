@@ -370,8 +370,13 @@ namespace DKMovies.Controllers
         }
 
 
-        [HttpGet]
-        public IActionResult SignUp() => View();
+        [HttpGet("Account/Signup")]
+        public IActionResult Signup()
+        {
+            ViewBag.ActiveTab = "register";
+            return View("Login");
+        }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -381,17 +386,20 @@ namespace DKMovies.Controllers
         {
             if (await _context.Users.AnyAsync(u => u.Username == username))
             {
-                ViewData["ToastError"] = "Tên đăng nhập đã tồn tại.";
-                ViewBag.ActiveTab = "register";
-                return View("Login");
+                ModelState.AddModelError("username", "Username already exists.");
             }
 
             if (await _context.Users.AnyAsync(u => u.Email == email))
             {
-                ViewData["ToastError"] = "Email đã được sử dụng.";
-                ViewBag.ActiveTab = "register";
+                ModelState.AddModelError("email", "Email is already in use.");
+            }
+
+            ViewBag.ActiveTab = "register";
+            if (!ModelState.IsValid)
+            {
                 return View("Login");
             }
+
 
             // Tạo mã xác nhận
             string confirmationCode = new Random().Next(100000, 999999).ToString();
