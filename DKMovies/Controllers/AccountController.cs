@@ -17,6 +17,39 @@ namespace DKMovies.Controllers
 {
     public class AccountController : Controller
     {
+        private void CreateUserNotification(int userId, string title, string message, int? ticketId = null, string type = "Order Status Update")
+        {
+            var notification = new Notification
+            {
+                UserID = userId,
+                Title = title,
+                Message = message,
+                NotificationType = type,
+                TicketID = ticketId, // ✅ Add the ticket ID
+                CreatedAt = DateTime.Now,
+                IsRead = false
+            };
+
+            _context.Notifications.Add(notification);
+        }
+
+        private void CreateAdminNotification(int adminId, string title, string message, int? ticketId = null, string type = "Security Alert")
+        {
+            var notification = new Notification
+            {
+                AdminID = adminId,
+                Title = title,
+                Message = message,
+                NotificationType = type,
+                TicketID = ticketId,
+                CreatedAt = DateTime.Now,
+                IsRead = false
+            };
+
+            _context.Notifications.Add(notification);
+        }
+
+
         private readonly ApplicationDbContext _context;
 
         public AccountController(ApplicationDbContext context)
@@ -146,18 +179,44 @@ namespace DKMovies.Controllers
             });
         }
 
-        // POST: Login (Handle user login or admin login)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(string username, string password, bool dummy)
         {
             var hashedPassword = HashPassword(password);
+            string ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"; ;
+            DateTime attemptTime = DateTime.UtcNow;
 
             // Try Users first
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
-
             if (user != null && user.PasswordHash == hashedPassword)
             {
+                // Check if login from new IP
+                bool isNewDevice = !await _context.LoginAttempts.AnyAsync(a => a.UserID == user.ID && a.IPAddress == ipAddress);
+
+                // Log attempt
+                _context.LoginAttempts.Add(new LoginAttempt
+                {
+                    AttemptTime = attemptTime,
+                    IsSuccessful = true,
+                    IPAddress = ipAddress,
+                    UserID = user.ID,
+                    AdminID = null
+                });
+
+                if (isNewDevice)
+                {
+                    CreateUserNotification(
+                        user.ID,
+                        "🔐 New Login Detected",
+                        $"A login was detected from a new device at {attemptTime:G} (IP: {ipAddress}). If this wasn't you, please change your password.",
+                        null,
+                        NotificationType.SecurityAlert.GetDisplayName()
+                    );
+                }
+
+                await _context.SaveChangesAsync();
+
                 var claims = new List<Claim>
         {
             new Claim(ClaimTypes.Name, user.Username),
@@ -176,11 +235,35 @@ namespace DKMovies.Controllers
                 return RedirectToAction("Index", "MoviesList");
             }
 
-            // Then Admins
+            // Try Admins
             var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Username == username);
-
             if (admin != null && admin.PasswordHash == hashedPassword)
             {
+                bool isNewDevice = !await _context.LoginAttempts.AnyAsync(a => a.AdminID == admin.ID && a.IPAddress == ipAddress);
+
+                // Log attempt
+                _context.LoginAttempts.Add(new LoginAttempt
+                {
+                    AttemptTime = attemptTime,
+                    IsSuccessful = true,
+                    IPAddress = ipAddress,
+                    AdminID = admin.ID,
+                    UserID = null
+                });
+
+                if (isNewDevice)
+                {
+                    CreateAdminNotification(
+                        admin.ID,
+                        "🔐 New Login Detected",
+                        $"A login was detected from a new device at {attemptTime:G} (IP: {ipAddress}).",
+                        null,
+                        NotificationType.SecurityAlert.GetDisplayName()
+                    );
+                }
+
+                await _context.SaveChangesAsync();
+
                 var claims = new List<Claim>
         {
             new Claim(ClaimTypes.Name, admin.Username),
@@ -196,10 +279,11 @@ namespace DKMovies.Controllers
                 };
 
                 await HttpContext.SignInAsync("MyCookieAuth", new ClaimsPrincipal(claimsIdentity), authProperties);
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "MoviesList");
             }
 
-            // If both checks fail
+            await _context.SaveChangesAsync();
+
             ModelState.AddModelError(string.Empty, "Invalid username or password.");
             return View();
         }
@@ -397,6 +481,15 @@ namespace DKMovies.Controllers
 
                     if (result > 0)
                     {
+                        CreateUserNotification(
+                            user.ID,
+                            "🔐 Email Verified",
+                            "Your email has been successfully verified.",
+                            null,
+                            NotificationType.SecurityAlert.GetDisplayName()
+                        );
+
+                        await _context.SaveChangesAsync(); // Save the notification
                         TempData["ToastSuccess"] = "✅ Xác minh thành công! Bạn có thể đăng nhập.";
                         return RedirectToAction("Login");
                     }
@@ -421,10 +514,6 @@ namespace DKMovies.Controllers
             ViewBag.Email = email;
             return View();
         }
-
-
-
-
 
         [HttpGet]
         public IActionResult AdminLogin() => View();

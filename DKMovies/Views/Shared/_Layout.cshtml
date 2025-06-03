@@ -2,7 +2,6 @@
 @using System.Security.Claims
 @using DKMovies.Models.ViewModels;
 
-
 @{
     var isAuthenticated = User.Identity.IsAuthenticated;
     var role = User.FindFirst(ClaimTypes.Role)?.Value;
@@ -20,70 +19,199 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/DKMovies.styles.css" asp-append-version="true" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        .dropdown-menu {
+            padding: 0 !important;
+            max-width: 350px;
+            width: 100%;
+        }
+
+        .dropdown-item {
+            padding: 0.5rem 0.75rem !important;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+            .dropdown-item .bi {
+                flex-shrink: 0;
+            }
+
+        /* FIXED: Better badge positioning */
+        .nav-link-with-badge {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+            .nav-badge.d-none {
+                display: none !important;
+            }
+
+        .notification-item {
+            transition: background-color 0.2s ease;
+            border: none !important;
+        }
+
+            .notification-item:hover {
+                background-color: #f8f9fa !important;
+            }
+
+        .notification-unread {
+            background-color: #e3f2fd !important;
+            border-left: 4px solid #2196f3 !important;
+        }
+
+        .notification-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .icon-account {
+            background-color: #e8f5e8;
+            color: #4caf50;
+        }
+
+        .icon-order {
+            background-color: #fff3e0;
+            color: #ff9800;
+        }
+
+        .icon-security {
+            background-color: #ffebee;
+            color: #f44336;
+        }
+
+        .icon-message {
+            background-color: #e1f5fe;
+            color: #03a9f4;
+        }
+
+        .icon-promotion {
+            background-color: #f3e5f5;
+            color: #9c27b0;
+        }
+
+        .icon-system {
+            background-color: #e8eaf6;
+            color: #3f51b5;
+        }
+    </style>
 </head>
 <body>
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
-
-                <!-- Left: Brand -->
                 <a class="navbar-brand fs-3 fw-bold text-primary me-3" asp-area="" asp-controller="MoviesList" asp-action="Index">DKMovies</a>
 
-                <!-- Inline Search Form (to right of brand) -->
                 <form class="d-flex align-items-center me-auto" asp-controller="MoviesList" asp-action="Search" method="get" style="flex-grow: 1; max-width: 600px;">
                     <div class="input-group w-100">
-                        <input class="form-control" type="search" name="query"
-                               placeholder="Search titles, directors, genres, countries..." />
+                        <input class="form-control" type="search" name="query" placeholder="Search titles, directors, genres, countries..." />
                         <button class="btn btn-outline-primary" type="submit" title="Search">
                             <i class="bi bi-search"></i>
                         </button>
-                        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse"
-                                data-bs-target="#advancedSearchCollapse" aria-expanded="false" aria-controls="advancedSearchCollapse" title="Advanced Search">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSearchCollapse" aria-expanded="false" aria-controls="advancedSearchCollapse" title="Advanced Search">
                             <i class="bi bi-sliders"></i>
                         </button>
                     </div>
                 </form>
 
-                <!-- Toggle (mobile) -->
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
-                <!-- Right: User Menu -->
-                <div class="collapse navbar-collapse justify-content-end" id="navbarContent">
-                    <ul class="navbar-nav">
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-person-circle fs-4"></i>
+                <ul class="navbar-nav align-items-center">
+                    @if (isAuthenticated)
+                    {
+                        <!-- Messages Icon -->
+                        <li class="nav-item me-3">
+                            @if (role == "User")
+                            {
+                                <a class="nav-link nav-link-with-badge" asp-controller="Messages" asp-action="UserMessages" title="Messages">
+                                    <i class="bi bi-envelope fs-5"></i>
+                                    <span class="nav-badge" id="messages-badge" style="display: none;">0</span>
+                                </a>
+                            }
+                            else if (role == "Admin" || role == "Staff")
+                            {
+                                <a class="nav-link nav-link-with-badge" asp-controller="Messages" asp-action="StaffMessages" title="Staff Messages">
+                                    <i class="bi bi-envelope fs-5"></i>
+                                    <span class="nav-badge" id="messages-badge" style="display: none;">0</span>
+                                </a>
+                            }
+                        </li>
+
+                        <!-- Notifications -->
+                        <li class="nav-item dropdown me-3">
+                            <a class="nav-link dropdown-toggle nav-link-with-badge" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-bell fs-5"></i>
+                                <span class="nav-badge" id="notif-badge" style="display: none;">
+                                    <span id="notif-count">0</span>
+                                </span>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                @if (!isAuthenticated)
-                                {
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Login">Login</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Register">Sign Up</a></li>
-                                }
-                                else if (role == "User")
-                                {
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">User Info</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Watchlist" asp-action="MyWatchlist">My Watchlist</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Tickets" asp-action="UserTickets">Tickets History</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout" id="logoutLink">Logout</a></li>
-                                }
-                                else if (role == "Admin")
-                                {
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">Admin Info</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="Dashboard">Admin Dashboard</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout" id="logoutLink">Logout</a></li>
-                                }
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdown" style="min-width: 350px;">
+                                <li><h6 class="dropdown-header">Notifications</h6></li>
+                                <li id="notif-loading" class="text-center text-muted">Loading...</li>
+                                <li id="notif-end"><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-primary text-center" href="/Notifications">View all</a></li>
                             </ul>
                         </li>
-                    </ul>
-                </div>
+                    }
 
+                    <!-- User Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle fs-4"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            @if (!isAuthenticated)
+                            {
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Login">Login</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Register">Sign Up</a></li>
+                            }
+                            else if (role == "User")
+                            {
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">User Info</a></li>
+                                <li><a class="dropdown-item" asp-controller="Watchlist" asp-action="MyWatchlist">My Watchlist</a></li>
+                                <li><a class="dropdown-item" asp-controller="Tickets" asp-action="UserTickets">Tickets History</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout" id="logoutLink">Logout</a></li>
+                            }
+                            else if (role == "Admin")
+                            {
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">Admin Info</a></li>
+                                <li><a class="dropdown-item" asp-controller="Admin" asp-action="Dashboard">Admin Dashboard</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout" id="logoutLink">Logout</a></li>
+                            }
+                        </ul>
+                    </li>
+                </ul>
             </div>
         </nav>
-
 
         <div class="collapse container mt-3" id="advancedSearchCollapse">
             <form method="get" asp-controller="MoviesList" asp-action="Results" class="row g-3 bg-light p-3 rounded">
@@ -95,7 +223,6 @@
                     <label class="form-label">Director</label>
                     <input type="text" name="director" value="@searchModel.Director" class="form-control" />
                 </div>
-
                 <div class="col-md-4">
                     <label class="form-label">Genre</label>
                     <select name="genreId" class="form-select">
@@ -106,7 +233,6 @@
                         }
                     </select>
                 </div>
-
                 <div class="col-md-4">
                     <label class="form-label">Language</label>
                     <select name="languageId" class="form-select">
@@ -117,7 +243,6 @@
                         }
                     </select>
                 </div>
-
                 <div class="col-md-4">
                     <label class="form-label">Country</label>
                     <select name="countryId" class="form-select">
@@ -130,15 +255,12 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Release From</label>
-                    <input type="date" name="releaseFrom" value="@(searchModel.ReleaseFrom?.ToString("yyyy-MM-dd"))"
-                           max="@today" class="form-control" />
+                    <input type="date" name="releaseFrom" value="@(searchModel.ReleaseFrom?.ToString("yyyy-MM-dd"))" max="@today" class="form-control" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Release To</label>
-                    <input type="date" name="releaseTo" value="@(searchModel.ReleaseTo?.ToString("yyyy-MM-dd"))"
-                           max="@today" class="form-control" />
+                    <input type="date" name="releaseTo" value="@(searchModel.ReleaseTo?.ToString("yyyy-MM-dd"))" max="@today" class="form-control" />
                 </div>
-
                 <div class="col-md-6">
                     <label class="form-label">Sort By</label>
                     <select name="sort" class="form-select">
@@ -148,15 +270,12 @@
                         <option value="date_desc" selected="@(searchModel.Sort == "date_desc")">Release Date ↓</option>
                     </select>
                 </div>
-
                 <div class="col-12 d-flex justify-content-between">
                     <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Search</button>
                     <a asp-controller="MoviesList" asp-action="Index" class="btn btn-secondary">Reset</a>
                 </div>
             </form>
         </div>
-
-
     </header>
 
     <div class="container">
@@ -174,30 +293,232 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
-</body>
-</html>
 
-@section Scripts {
     <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const notifDropdown = document.getElementById("notifDropdown");
+            const notifBadge = document.getElementById("notif-badge");
+            const notifCount = document.getElementById("notif-count");
+            const notifEnd = document.getElementById("notif-end");
+            const messagesBadge = document.getElementById("messages-badge");
+
+            if (!notifDropdown || !notifEnd) return;
+
+            const notifMenu = notifEnd.parentElement;
+
+            // Load initial counts on page load
+            async function loadInitialCounts() {
+                try {
+                    // Load notification count
+                    const notifResponse = await fetch('/Notifications/GetUnreadNotificationCount');
+                    if (notifResponse.ok) {
+                        const notifData = await notifResponse.json();
+                        const count = notifData.unreadCount || 0;
+
+                        if (notifCount) notifCount.textContent = count;
+                        if (notifBadge) {
+                            notifBadge.style.display = count > 0 ? 'flex' : 'none';
+                        }
+                    }
+
+                    // Load message count
+                    const msgResponse = await fetch('/Messages/GetUnreadMessageCount');
+                    if (msgResponse.ok) {
+                        const msgData = await msgResponse.json();
+                        const count = msgData.unreadCount || 0;
+
+                        if (messagesBadge) {
+                            messagesBadge.textContent = count;
+                            messagesBadge.style.display = count > 0 ? 'flex' : 'none';
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error loading counts:", error);
+                }
+            }
+
+            loadInitialCounts();
+
+            function getNotificationIcon(type) {
+                const iconMap = {
+                    "AccountRelated": { icon: "bi-person-circle", class: "icon-account" },
+                    "OrderStatusUpdate": { icon: "bi-box-seam", class: "icon-order" },
+                    "SecurityAlert": { icon: "bi-shield-exclamation", class: "icon-security" },
+                    "NewMessage": { icon: "bi-chat-dots-fill", class: "icon-message" },
+                    "Promotion": { icon: "bi-megaphone-fill", class: "icon-promotion" },
+                    "SystemMessage": { icon: "bi-gear-fill", class: "icon-system" }
+                };
+                return iconMap[type.replace(/\s+/g, '')] || { icon: "bi-bell-fill", class: "icon-system" };
+            }
+
+            function getNavigationUrl(notification) {
+                const role = '@role';
+                const ticketId = notification.ticketID || notification.ticketId;
+                const type = notification.notificationType.replace(/\s+/g, '');
+
+                switch (type) {
+                    case "NewMessage":
+                        return role === "User" ? "/Messages/UserMessages" : "/Messages/StaffMessages";
+                    case "OrderStatusUpdate":
+                        return `/Tickets/OrderConfirmation?ticketId=${ticketId}`;
+                    case "AccountRelated":
+                        return "/Account/Profile";
+                    case "SecurityAlert":
+                        return "/Account/Security";
+                    case "Promotion":
+                        return "/Promotions";
+                    default:
+                        return "/Notifications";
+                }
+            }
+
+            notifDropdown.addEventListener("show.bs.dropdown", async function () {
+                const existingItems = notifMenu.querySelectorAll(".notif-item, #notif-loading, #temp-loading");
+                existingItems.forEach(el => el.remove());
+
+                const loadingLi = document.createElement("li");
+                loadingLi.className = "text-center text-muted p-3";
+                loadingLi.textContent = "Loading...";
+                loadingLi.id = "temp-loading";
+                notifMenu.insertBefore(loadingLi, notifEnd);
+
+                try {
+                    const response = await fetch('/Notifications/GetLatestNotifications');
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                    const data = await response.json();
+                    document.getElementById("temp-loading")?.remove();
+
+                    const count = data.unreadCount || 0;
+                    if (notifCount) notifCount.textContent = count;
+                    if (notifBadge) notifBadge.style.display = count > 0 ? 'flex' : 'none';
+
+                    if (!data.notifications || data.notifications.length === 0) {
+                        const emptyLi = document.createElement("li");
+                        emptyLi.className = "text-center text-muted p-3 notif-item";
+                        emptyLi.textContent = "No notifications";
+                        notifMenu.insertBefore(emptyLi, notifEnd);
+                        return;
+                    }
+
+                    data.notifications.forEach(notification => {
+                        const li = document.createElement("li");
+                        li.className = "notif-item";
+
+                        const isUnread = !notification.isRead;
+                        const iconInfo = getNotificationIcon(notification.notificationType);
+                        const targetUrl = getNavigationUrl(notification);
+
+                        const notificationElement = document.createElement('div');
+                        notificationElement.className = `dropdown-item notification-item ${isUnread ? 'notification-unread' : ''}`;
+                        notificationElement.setAttribute('data-notification-id', notification.id);
+                        notificationElement.setAttribute('data-target-url', targetUrl);
+                        notificationElement.setAttribute('data-is-read', notification.isRead);
+                        notificationElement.setAttribute('data-notification-type', notification.notificationType);
+                        notificationElement.style.cursor = 'pointer';
+                        notificationElement.style.padding = '12px 16px';
+
+                        notificationElement.innerHTML = `
+                            <div class="d-flex align-items-start">
+                                <div class="notification-icon ${iconInfo.class}">
+                                    <i class="bi ${iconInfo.icon}"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-${isUnread ? 'bold' : 'normal'} text-dark mb-1" style="font-size: 14px;">
+                                        ${notification.title || 'Notification'}
+                                    </div>
+                                    <div class="text-muted small mb-1" style="font-size: 13px; line-height: 1.3;">
+                                        ${notification.message || ''}
+                                    </div>
+                                    <div class="text-secondary" style="font-size: 11px;">
+                                        ${notification.createdAt || ''}
+                                    </div>
+                                </div>
+                                ${isUnread ? '<div class="ms-2"><i class="bi bi-circle-fill text-primary" style="font-size: 8px;"></i></div>' : ''}
+                            </div>
+                        `;
+
+                        li.appendChild(notificationElement);
+                        notifMenu.insertBefore(li, notifEnd);
+                        notificationElement.addEventListener("click", handleNotificationClick);
+                    });
+
+                } catch (error) {
+                    console.error("Error loading notifications:", error);
+                    document.getElementById("temp-loading")?.remove();
+
+                    const errorLi = document.createElement("li");
+                    errorLi.className = "text-center text-danger p-3 notif-item";
+                    errorLi.textContent = "Failed to load notifications";
+                    notifMenu.insertBefore(errorLi, notifEnd);
+                }
+            });
+
+            async function handleNotificationClick(event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const notificationId = this.getAttribute("data-notification-id");
+                const targetUrl = this.getAttribute("data-target-url");
+                const isRead = this.getAttribute("data-is-read") === "true";
+                const notificationType = this.getAttribute("data-notification-type").replace(/\s+/g, '');
+
+                if (notificationId && !isRead) {
+                    try {
+                        const response = await fetch(`/Notifications/MarkAsRead?notificationId=${notificationId}`, {
+                            method: "POST",
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+
+                        if (response.ok) {
+                            this.classList.remove("notification-unread");
+                            this.setAttribute("data-is-read", "true");
+
+                            const unreadIndicator = this.querySelector(".bi-circle-fill");
+                            if (unreadIndicator?.parentElement) {
+                                unreadIndicator.parentElement.remove();
+                            }
+
+                            const titleElement = this.querySelector(".fw-bold");
+                            if (titleElement) {
+                                titleElement.classList.remove("fw-bold");
+                                titleElement.classList.add("fw-normal");
+                            }
+
+                            if (notifCount) {
+                                const currentCount = parseInt(notifCount.textContent) || 0;
+                                const newCount = Math.max(0, currentCount - 1);
+                                notifCount.textContent = newCount;
+                                if (notifBadge) {
+                                    notifBadge.style.display = newCount > 0 ? 'flex' : 'none';
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Error marking as read:", error);
+                    }
+                }
+
+                const shouldRedirect = ["NewMessage", "OrderStatusUpdate"].includes(notificationType);
+                if (shouldRedirect && targetUrl && targetUrl !== "#") {
+                    setTimeout(() => window.location.href = targetUrl, 300);
+                }
+            }
+        });
+
+        // Logout confirmation
         document.addEventListener("DOMContentLoaded", function () {
             const logoutLink = document.getElementById("logoutLink");
             if (logoutLink) {
                 logoutLink.addEventListener("click", function (e) {
-                    const confirmLogout = confirm("Are you sure you want to log out?");
-                    if (!confirmLogout) {
-                        e.preventDefault(); // Cancel navigation
+                    if (!confirm("Are you sure you want to log out?")) {
+                        e.preventDefault();
                     }
                 });
             }
         });
-
-        document.addEventListener("DOMContentLoaded", function () {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
-            tooltipTriggerList.forEach(function (el) {
-                new bootstrap.Tooltip(el);
-            });
-        });
-
     </script>
-}
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

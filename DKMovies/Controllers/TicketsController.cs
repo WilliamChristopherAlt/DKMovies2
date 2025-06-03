@@ -6,6 +6,22 @@ using System.Security.Claims;
 
 public class TicketsController : Controller
 {
+    private void CreateUserNotification(int userId, string title, string message, int? ticketId = null, string type = "Order Status Update")
+    {
+        var notification = new Notification
+        {
+            UserID = userId,
+            Title = title,
+            Message = message,
+            NotificationType = type,
+            TicketID = ticketId, // ✅ Add the ticket ID
+            CreatedAt = DateTime.Now,
+            IsRead = false
+        };
+
+        _context.Notifications.Add(notification);
+    }
+
     private readonly ApplicationDbContext _context;
 
     public TicketsController(ApplicationDbContext context)
@@ -83,14 +99,12 @@ public class TicketsController : Controller
 
     public IActionResult ConfirmOrder(int ShowTimeID, List<int> SelectedSeats, Dictionary<int, int> Quantities)
     {
-        // ✅ Ensure authenticated and in role "User"
         if (!User.Identity.IsAuthenticated || !User.IsInRole("User"))
         {
             TempData["Error"] = "Only logged-in users can book tickets.";
             return RedirectToAction("Login", "Account");
         }
 
-        // ✅ Get user ID from claims
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
         {
@@ -98,10 +112,10 @@ public class TicketsController : Controller
             return RedirectToAction("Login", "Account");
         }
 
-        // ✅ Validate ShowTime
         var showTime = _context.ShowTimes
             .Include(st => st.Tickets)
                 .ThenInclude(t => t.TicketSeats)
+            .Include(st => st.Movie)
             .FirstOrDefault(st => st.ID == ShowTimeID);
 
         if (showTime == null)
@@ -109,7 +123,6 @@ public class TicketsController : Controller
             return NotFound("ShowTime not found.");
         }
 
-        // ✅ Check available seats
         var availableSeats = _context.Seats
             .Where(s => SelectedSeats.Contains(s.ID))
             .ToList();
@@ -126,7 +139,6 @@ public class TicketsController : Controller
             return RedirectToAction("OrderTicketDetails", new { id = ShowTimeID });
         }
 
-        // ✅ Create Ticket
         var ticket = new Ticket
         {
             UserID = userId,
@@ -137,7 +149,6 @@ public class TicketsController : Controller
         _context.Tickets.Add(ticket);
         _context.SaveChanges(); // To get Ticket ID
 
-        // ✅ Create TicketSeats
         var ticketSeats = availableSeats.Select(seat => new TicketSeat
         {
             TicketID = ticket.ID,
@@ -145,8 +156,6 @@ public class TicketsController : Controller
         }).ToList();
 
         _context.TicketSeats.AddRange(ticketSeats);
-
-
 
         foreach (var entry in Quantities)
         {
@@ -169,15 +178,17 @@ public class TicketsController : Controller
             });
         }
 
-
+        // ✅ Create notification WITH ticket ID
+        CreateUserNotification(userId, "Ticket Booked",
+            $"Your ticket for '{showTime.Movie.Title}' on {showTime.StartTime:MMM dd, yyyy hh:mm tt} has been booked.",
+            ticket.ID, // Pass the ticket ID here
+            NotificationType.OrderStatusUpdate.GetDisplayName());
 
         _context.SaveChanges();
 
         TempData["Success"] = "Seats reserved successfully!";
-        //return RedirectToAction("OrderConfirmation", new { ticketId = ticket.ID });
-        return RedirectToAction("CreateCheckoutSession", "Payment", new { ticketId = ticket.ID});
+        return RedirectToAction("CreateCheckoutSession", "Payment", new { ticketId = ticket.ID });
     }
-
 
     public IActionResult OrderConfirmation(int ticketId)
     {
@@ -250,6 +261,7 @@ public class TicketsController : Controller
         return View(tickets);
     }
 
+    // Updated CancelTicket method
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "User")]
@@ -259,6 +271,7 @@ public class TicketsController : Controller
 
         var ticket = await _context.Tickets
             .Include(t => t.ShowTime)
+                .ThenInclude(st => st.Movie)
             .FirstOrDefaultAsync(t => t.ID == ticketId && t.UserID == userId);
 
         if (ticket == null)
@@ -278,6 +291,13 @@ public class TicketsController : Controller
 
         ticket.Status = TicketStatus.CANCELLED;
         _context.Update(ticket);
+
+        // ✅ Create cancellation notification WITH ticket ID
+        CreateUserNotification(userId, "Ticket Cancelled",
+            $"Your ticket for '{ticket.ShowTime.Movie.Title}' on {ticket.ShowTime.StartTime:MMM dd, yyyy hh:mm tt} has been cancelled.",
+            ticketId, // Pass the ticket ID here
+            NotificationType.OrderStatusUpdate.GetDisplayName());
+
         await _context.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Your ticket has been cancelled successfully.";

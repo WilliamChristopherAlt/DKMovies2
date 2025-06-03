@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Stripe;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Reflection;
 
 namespace DKMovies.Models
 {
@@ -171,6 +173,9 @@ namespace DKMovies.Models
 
         public ICollection<Ticket> Tickets { get; set; }
         public ICollection<Review> Reviews { get; set; }
+            public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+            public ICollection<Notification> MessageNotifications { get; set; } = new List<Notification>();
+        public ICollection<LoginAttempt> LoginAttempts { get; set; }
     }
 
     // 7. THEATERS
@@ -724,6 +729,168 @@ namespace DKMovies.Models
 
         [Display(Name = "Created At")]
         public DateTime CreatedAt { get; set; }
+
+        // Navigation properties with explicit inverse properties
+        [InverseProperty("Admin")]
+        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
+        [InverseProperty("MessageAdmin")]
+        public ICollection<Notification> MessageNotifications { get; set; } = new List<Notification>();
+
+        public ICollection<LoginAttempt> LoginAttempts { get; set; } = new List<LoginAttempt>();
     }
 
+    public class Message
+    {
+        [Key]
+        public int MessageID { get; set; }
+
+        [Required]
+        public int UserID { get; set; }
+
+        [Required]
+        public bool IsFromUser { get; set; } // true = user, false = system/admin
+
+        [Required]
+        public byte[] MessageText { get; set; } // Binary storage (e.g., encrypted); use string if not
+
+        [Required]
+        public DateTime SentAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? ReadAt { get; set; }
+
+        [Required]
+        public bool IsRead { get; set; } = false;
+
+        [Required]
+        public bool IsDeletedBySender { get; set; } = false;
+
+        [Required]
+        public bool IsDeletedByReceiver { get; set; } = false;
+
+        [ForeignKey(nameof(UserID))]
+        public User User { get; set; }
+    }
+
+    public class LoginAttempt
+    {
+        [Key]
+        public int ID { get; set; }
+
+        [Required]
+        public DateTime AttemptTime { get; set; }
+
+        [Required]
+        public bool IsSuccessful { get; set; }
+
+        [Required]
+        [MaxLength(45)]
+        public string IPAddress { get; set; }
+
+        // Mutually Exclusive Foreign Keys
+        public int? UserID { get; set; }
+        public int? AdminID { get; set; }
+
+        [ForeignKey(nameof(UserID))]
+        public virtual User? User { get; set; }
+
+        [ForeignKey(nameof(AdminID))]
+        public virtual Admin? Admin { get; set; }
+
+        // Mutual exclusivity logic (not enforced in DB, for validation in app logic)
+        [NotMapped]
+        public bool IsValid =>
+            (UserID.HasValue && !AdminID.HasValue) ||
+            (!UserID.HasValue && AdminID.HasValue);
+    }
+
+    public enum NotificationType
+    {
+        [Display(Name = "Account Related")]
+        AccountRelated,
+
+        [Display(Name = "Order Status Update")]
+        OrderStatusUpdate,
+
+        [Display(Name = "Security Alert")]
+        SecurityAlert,
+
+        [Display(Name = "New Message")]
+        NewMessage,
+
+        [Display(Name = "Promotion")]
+        Promotion,
+
+        [Display(Name = "System Message")]
+        SystemMessage
+    }
+
+    public static class EnumExtensions
+    {
+        public static string GetDisplayName(this Enum enumValue)
+        {
+            var displayAttribute = enumValue.GetType()
+                                            .GetMember(enumValue.ToString())[0]
+                                            .GetCustomAttribute<DisplayAttribute>();
+
+            return displayAttribute != null ? displayAttribute.Name : enumValue.ToString();
+        }
+    }
+
+    public class Notification
+    {
+        [Key]
+        public int ID { get; set; }
+
+        public int? UserID { get; set; }
+        public int? AdminID { get; set; }
+        public int? TicketID { get; set; }
+
+        [Required]
+        [StringLength(255)]
+        public string Title { get; set; }
+
+        [Required]
+        public string Message { get; set; }
+
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        [Required]
+        public bool IsRead { get; set; } = false;
+
+        [Required]
+        public string NotificationType { get; set; }
+
+        // Foreign keys for User relationships
+        public int? MessageUserID { get; set; }
+
+        // Foreign key for Admin message notifications
+        public int? MessageAdminID { get; set; }
+
+        // Navigation properties
+        [ForeignKey(nameof(AdminID))]
+        [InverseProperty("Notifications")]
+        public virtual Admin? Admin { get; set; }
+
+        [ForeignKey(nameof(MessageAdminID))]
+        [InverseProperty("MessageNotifications")]
+        public virtual Admin? MessageAdmin { get; set; }
+
+        [ForeignKey(nameof(TicketID))]
+        public virtual Ticket? Ticket { get; set; }
+
+        [ForeignKey(nameof(UserID))]
+        [InverseProperty("Notifications")]
+        public virtual User? User { get; set; }
+
+        [ForeignKey(nameof(MessageUserID))]
+        [InverseProperty("MessageNotifications")]
+        public virtual User? MessageUser { get; set; }
+
+        [NotMapped]
+        public bool IsValid =>
+            (UserID.HasValue && !AdminID.HasValue) ||
+            (!UserID.HasValue && AdminID.HasValue);
+    }
 }

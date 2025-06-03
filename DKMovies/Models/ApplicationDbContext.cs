@@ -33,6 +33,9 @@ namespace DKMovies.Models
         public DbSet<Admin> Admins { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<Review> Reviews { get; set; }
+        public DbSet<Message> Messages { get; set; }
+        public DbSet<LoginAttempt> LoginAttempts { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -62,6 +65,11 @@ namespace DKMovies.Models
             modelBuilder.Entity<Director>().ToTable("Directors");
             modelBuilder.Entity<Language>().ToTable("Languages");
             modelBuilder.Entity<Admin>().ToTable("Admins");
+
+            modelBuilder.Entity<Message>().ToTable("Messages");
+            modelBuilder.Entity<LoginAttempt>().ToTable("LoginAttempts");
+            modelBuilder.Entity<Notification>().ToTable("Notifications");
+
 
             modelBuilder.Entity<Ticket>()
                 .Property(t => t.Status)
@@ -373,6 +381,32 @@ namespace DKMovies.Models
             // 24. Admins
             // No children
 
+            // Configure User-Notification relationships
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.UserID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.MessageUser)
+                .WithMany(u => u.MessageNotifications)
+                .HasForeignKey(n => n.MessageUserID)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure Admin-Notification relationships
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Admin)
+                .WithMany(a => a.Notifications)
+                .HasForeignKey(n => n.AdminID)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure Ticket-Notification relationship
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Ticket)
+                .WithMany() // Assuming Ticket doesn't have navigation back to Notifications
+                .HasForeignKey(n => n.TicketID)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿@using Microsoft.AspNetCore.Html
+@using DKMovies.Models
 @model List<DKMovies.Models.Seat>
 
 @{
@@ -7,179 +8,300 @@
 }
 
 <style>
-    .btn-taken {
-        background-color: #6c757d !important; /* same as Bootstrap's btn-secondary */
-        color: white !important;
-        pointer-events: none; /* prevent click */
-        opacity: 1 !important; /* avoid washed out look */
-        border-color: #6c757d !important;
-        cursor: not-allowed;
+    .cinema-screen {
+        background: #6c757d;
+        height: 8px;
+        border-radius: 8px;
+        margin: 0 auto 2rem;
+        width: 60%;
+        position: relative;
     }
-</style>
 
+        .cinema-screen::after {
+            content: "SCREEN";
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+    .seat-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+    }
+
+    .seat-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 6px;
+        justify-content: center;
+    }
+
+    .seat-checkbox {
+        display: none !important;
+    }
+
+    .seat-label {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        border: 2px solid #dee2e6;
+        background: white;
+        color: #495057;
+        font-weight: 500;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .seat-label:hover:not(.seat-taken) {
+            border-color: #198754;
+            background: #f8f9fa;
+        }
+
+        .seat-label.seat-selected {
+            background: #198754;
+            border-color: #198754;
+            color: white;
+        }
+
+        .seat-label.seat-taken {
+            background: #6c757d !important;
+            border-color: #6c757d !important;
+            color: white !important;
+            cursor: not-allowed !important;
+            opacity: 0.7 !important;
+        }
+
+    .legend-seat {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        display: inline-block;
+    }
+
+    .concession-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        transition: box-shadow 0.2s ease;
+    }
+
+        .concession-card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+    .concession-image {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+
+    .quantity-input {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.9rem;
+    }
+
+        .quantity-input:focus {
+            border-color: #198754;
+            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+            outline: none;
+        }
+</style>
 
 @if (Model == null || !Model.Any())
 {
-    <p>No seats available for this showtime.</p>
+    <div class="container mt-4">
+        <div class="alert alert-danger">
+            <h4>No Seats Available</h4>
+            <p>Unfortunately, there are no seats available for this showtime.</p>
+        </div>
+    </div>
 }
 else
 {
-    <div class="container mt-4">
-        <h2>Select Seats for @showTime.Movie.Title at @showTime.StartTime.ToString("f")</h2>
+    <div class="container mt-4 mb-5">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-1">Select Your Seats</h2>
+                <p class="text-muted mb-4">@showTime.Movie.Title • @showTime.StartTime.ToString("f")</p>
 
-        <form asp-action="ConfirmOrder" method="post" id="seatSelectionForm">
-            <input type="hidden" name="ShowTimeID" value="@showTime.ID" />
+                <div class="cinema-screen"></div>
 
-            <div class="d-flex gap-4 flex-wrap">
-                @for (int section = 0; section < 3; section++)
-                {
-                    int minSeat = section * 6 + 1;
-                    int maxSeat = minSeat + 5;
+                <form asp-action="ConfirmOrder" method="post" id="seatSelectionForm">
+                    <input type="hidden" name="ShowTimeID" value="@showTime.ID" />
 
-                    <div>
-                        <h5>Seats @minSeat–@maxSeat</h5>
-                        @foreach (var rowGroup in Model.Where(s => s.SeatNumber >= minSeat && s.SeatNumber <= maxSeat)
-                       .GroupBy(s => s.RowLabel)
-                       .OrderBy(g => g.Key))
+                    <div class="row g-3 mb-4">
+                        @for (int section = 0; section < 3; section++)
                         {
-                            <div class="d-flex mb-1" style="gap: 4px;">
-                                @foreach (var seat in rowGroup.OrderBy(s => s.SeatNumber))
-                                {
-                                    var isTaken = takenSeats.Contains(seat.ID);
-                                    var seatId = $"seat-{seat.ID}";
-                                    <div>
-                                        <input type="checkbox"
-                                               id="@seatId"
-                                               name="SelectedSeats[]"
-                                               value="@seat.ID"
-                                               class="seat-checkbox d-none"
-                                        @(isTaken ? "disabled" : "") />
+                            int minSeat = section * 6 + 1;
+                            int maxSeat = minSeat + 5;
 
-                                        <label for="@seatId"
-                                               class="btn btn-sm seat-label @(isTaken ? "btn-taken" : "btn-outline-success")"
-                                               style="min-width: 50px;">
-                                            @seat.RowLabel@seat.SeatNumber
-                                        </label>
+                            <div class="col-md-4">
+                                <div class="seat-section">
+                                    <h6 class="text-center mb-3 fw-semibold">Seats @minSeat–@maxSeat</h6>
+                                    @foreach (var rowGroup in Model.Where(s => s.SeatNumber >= minSeat && s.SeatNumber <= maxSeat)
+                                   .GroupBy(s => s.RowLabel)
+                                   .OrderBy(g => g.Key))
+                                    {
+                                        <div class="seat-row">
+                                            @foreach (var seat in rowGroup.OrderBy(s => s.SeatNumber))
+                                            {
+                                                var isTaken = takenSeats.Contains(seat.ID);
+                                                var seatId = $"seat-{seat.ID}";
 
-                                    </div>
-                                }
+                                                <div>
+                                                    <input type="checkbox"
+                                                           id="@seatId"
+                                                           name="SelectedSeats[]"
+                                                           value="@seat.ID"
+                                                           class="seat-checkbox"
+                                                    @(isTaken ? "disabled" : "") />
+
+                                                    <label for="@seatId"
+                                                           class="seat-label @(isTaken ? "seat-taken" : "")">
+                                                        @seat.RowLabel@seat.SeatNumber
+                                                    </label>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         }
                     </div>
-                }
-            </div>
 
-            <div class="mt-3">
-                <strong>Selected seats:</strong>
-                <span id="selectedSeatsCount">0</span>
-            </div>
+                    <div class="d-flex justify-content-center gap-4 mb-4 p-3 bg-light rounded">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="legend-seat" style="background: white; border: 2px solid #dee2e6;"></div>
+                            <span class="small">Available</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="legend-seat" style="background: #198754;"></div>
+                            <span class="small">Selected</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="legend-seat" style="background: #6c757d;"></div>
+                            <span class="small">Taken</span>
+                        </div>
+                    </div>
 
-        @using DKMovies.Models
-            @{
-                var concessions = ViewData["AvailableConcessions"] as List<TheaterConcession> ?? new();
-            }
+                    <div class="alert alert-info d-flex justify-content-between align-items-center mb-4">
+                        <span>Selected Seats:</span>
+                        <span id="selectedSeatsCount" class="fw-bold">0</span>
+                    </div>
 
-            @if (concessions.Any())
-            {
-                <hr />
-                <h4 class="mb-4">Available Concessions</h4>
-                <div class="row row-cols-1 row-cols-md-2 g-4">
-                    @foreach (var item in concessions)
+                @using DKMovies.Models
+                    @{
+                        var concessions = ViewData["AvailableConcessions"] as List<TheaterConcession> ?? new();
+                    }
+
+                    @if (concessions.Any())
                     {
-                        var imagePath = string.IsNullOrWhiteSpace(item.Concession.ImagePath)
-                        ? Url.Content("~/images/concessions/default.jpg")
-                        : Url.Content($"~/images/concessions/{item.Concession.ImagePath}");
+                        <div class="mt-5">
+                            <h4 class="mb-3">Concessions</h4>
+                            <div class="row g-3">
+                                @foreach (var item in concessions)
+                                {
+                                    var imagePath = string.IsNullOrWhiteSpace(item.Concession.ImagePath)
+                                    ? Url.Content("~/images/concessions/default.jpg")
+                                    : Url.Content($"~/images/concessions/{item.Concession.ImagePath}");
 
-                        <div class="col">
-                            <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
-                                <div class="row g-0 h-100">
-                                    <div class="col-4">
-                                        <img src="@imagePath" class="img-fluid h-100 w-100 object-fit-cover" style="min-height: 150px;" alt="@item.Concession.Name" />
-                                    </div>
-                                    <div class="col-8">
-                                        <div class="card-body d-flex flex-column justify-content-between h-100 py-3 px-4">
-                                            <div>
-                                                <h5 class="card-title fw-bold mb-2">@item.Concession.Name</h5>
-                                                <p class="card-text text-muted small mb-2">@item.Concession.Description</p>
-                                            </div>
-                                            <div class="mt-auto">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <span class="text-success fw-semibold">@item.Price.ToString("C")</span>
-                                                    <small class="text-muted">Stock: <strong>@item.StockLeft</strong></small>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <label class="form-label mb-1" for="qty-@item.ID">Quantity</label>
-                                                    <input type="number"
-                                                           name="Quantities[@item.ID]"
-                                                           id="qty-@item.ID"
-                                                           class="form-control form-control-sm"
-                                                           min="0"
-                                                           max="@item.StockLeft"
-                                                           value="0" />
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="concession-card p-3 h-100">
+                                            <div class="d-flex gap-3">
+                                                <img src="@imagePath"
+                                                     class="concession-image flex-shrink-0"
+                                                     alt="@item.Concession.Name" />
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1">@item.Concession.Name</h6>
+                                                    <p class="text-muted small mb-2">@item.Concession.Description</p>
+
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <span class="fw-semibold text-success">@item.Price.ToString("C")</span>
+                                                        <span class="small text-muted">Stock: @item.StockLeft</span>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label small mb-1" for="qty-@item.ID">Quantity</label>
+                                                        <input type="number"
+                                                               name="Quantities[@item.ID]"
+                                                               id="qty-@item.ID"
+                                                               class="quantity-input form-control form-control-sm"
+                                                               min="0"
+                                                               max="@item.StockLeft"
+                                                               value="0" />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                }
                             </div>
                         </div>
                     }
-                </div>
-            }
-            <button type="submit" class="btn btn-success mt-3">Proceed to Payment</button>
-        </form>
+
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-success btn-lg px-4">Proceed to Payment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 }
 
 @if (TempData["Error"] != null)
 {
-    <div class="alert alert-danger mt-3">
-        @TempData["Error"]
+    <div class="container mt-3">
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
     </div>
 }
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success mt-3">
-        @TempData["Success"]
-    </div>
-}
+
 @section Scripts {
     <script>
         function updateSeatVisuals() {
             const checkboxes = document.querySelectorAll('input[name="SelectedSeats[]"]');
             checkboxes.forEach(cb => {
                 const label = document.querySelector(`label[for="${cb.id}"]`);
-                if (!label) return;
+                if (!label || label.classList.contains('seat-taken')) return;
+
                 if (cb.checked) {
-                    label.classList.remove("btn-outline-success");
-                    label.classList.add("btn-success");
+                    label.classList.add("seat-selected");
                 } else {
-                    label.classList.add("btn-outline-success");
-                    label.classList.remove("btn-success");
+                    label.classList.remove("seat-selected");
                 }
             });
 
-            // Update selected count
             const selectedSeats = document.querySelectorAll('input[name="SelectedSeats[]"]:checked');
             document.getElementById('selectedSeatsCount').textContent = selectedSeats.length;
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            // Initial update
             updateSeatVisuals();
 
-            // Update visuals on change
             document.querySelectorAll('input[name="SelectedSeats[]"]').forEach(cb => {
                 cb.addEventListener('change', updateSeatVisuals);
             });
 
-            // Prevent submit with no seats
             const form = document.getElementById('seatSelectionForm');
             form.addEventListener('submit', function (e) {
                 const selected = document.querySelectorAll('input[name="SelectedSeats[]"]:checked');
                 if (selected.length === 0) {
                     e.preventDefault();
-                    alert("Please select at least one seat before proceeding.");
+                    alert('Please select at least one seat before proceeding to payment.');
                 }
             });
         });

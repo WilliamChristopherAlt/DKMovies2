@@ -9,6 +9,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc.Filters;
 using DKMovies.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using System.Data;
+using Microsoft.Data.SqlClient;
+using MathNet.Numerics.LinearAlgebra;
 
 namespace DKMovies.Controllers
 {
@@ -27,24 +30,23 @@ namespace DKMovies.Controllers
             if (controller != null)
             {
                 controller.ViewBag.LayoutGenres = await _context.Genres
-                    .Where(g => g.MovieGenres.Any()) // Only genres linked to movies
+                    .Where(g => g.MovieGenres.Any())
                     .OrderBy(g => g.Name)
                     .ToListAsync();
 
                 controller.ViewBag.LayoutLanguages = await _context.Languages
-                    .Where(l => l.Movies.Any()) // Only languages used by at least one movie
+                    .Where(l => l.Movies.Any())
                     .OrderBy(l => l.Name)
                     .ToListAsync();
 
                 controller.ViewBag.LayoutCountries = await _context.Countries
-                    .Where(c => c.Movies.Any()) // Only countries used by at least one movie
+                    .Where(c => c.Movies.Any())
                     .OrderBy(c => c.Name)
                     .ToListAsync();
             }
 
             await next();
         }
-
     }
 
     public class MoviesListController : Controller
@@ -59,27 +61,29 @@ namespace DKMovies.Controllers
 
         public async Task<IActionResult> Index(int page = 1)
         {
-            // --- Try to Get Hot Movies Based on Tickets ---
-            var hotMovies = await _context.Tickets
+            // --- Hot Movies Based on Ticket Sales ---
+            var hotMovieQuery = await _context.Tickets
                 .Include(t => t.ShowTime)
                     .ThenInclude(s => s.Movie)
                 .Where(t => t.ShowTime.Movie != null)
                 .GroupBy(t => t.ShowTime.Movie)
                 .OrderByDescending(g => g.Count())
                 .Select(g => g.Key)
-                .Take(10)
                 .ToListAsync();
 
-            // If no hot movies from ticket sales, fallback to recent movies
-            if (!hotMovies.Any())
+            var hotMovies = hotMovieQuery.Take(10).ToList();
+
+            if (hotMovies.Count < 10)
             {
-                hotMovies = await _context.Movies
-                    .OrderByDescending(m => m.ReleaseDate) // or m.ID if no ReleaseDate
-                    .Take(10)
+                var existingIds = hotMovies.Select(m => m.ID).ToHashSet();
+                var recentMovies = await _context.Movies
+                    .Where(m => !existingIds.Contains(m.ID))
+                    .OrderByDescending(m => m.ReleaseDate)
+                    .Take(10 - hotMovies.Count)
                     .ToListAsync();
+                hotMovies.AddRange(recentMovies);
             }
 
-            // Ensure poster path is set
             foreach (var movie in hotMovies)
             {
                 if (string.IsNullOrEmpty(movie.PosterImagePath))
@@ -93,6 +97,35 @@ namespace DKMovies.Controllers
             }
 
             ViewBag.HotMovies = hotMovies;
+
+            // --- Recommended Movies using Matrix Factorization ---
+            List<Movie> recommendedMovies;
+            if (User.Identity.IsAuthenticated && User.IsInRole("User"))
+            {
+                var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+                recommendedMovies = await GetRecommendedMovies(userId);
+            }
+            else
+            {
+                recommendedMovies = await _context.Movies
+                    .OrderByDescending(m => m.ReleaseDate)
+                    .Take(10)
+                    .ToListAsync();
+            }
+
+            foreach (var movie in recommendedMovies)
+            {
+                if (string.IsNullOrEmpty(movie.PosterImagePath))
+                {
+                    movie.PosterImagePath = "default.jpg";
+                }
+                else if (!movie.PosterImagePath.StartsWith("assets/images/movie_posters/"))
+                {
+                    movie.PosterImagePath = Path.GetFileName(movie.PosterImagePath);
+                }
+            }
+
+            ViewBag.RecommendedMovies = recommendedMovies;
 
             // --- Movie List Pagination ---
             var totalMovies = await _context.Movies.CountAsync();
@@ -113,18 +146,114 @@ namespace DKMovies.Controllers
             var avgRatings = await _context.Reviews
                 .Where(r => movieIds.Contains(r.MovieID) && r.IsApproved)
                 .GroupBy(r => r.MovieID)
-                .Select(g => new { MovieID = g.Key, AvgRating = g.Average(r => r.Rating) })
+                .Select(g => new { g.Key, AvgRating = g.Average(r => r.Rating) })
                 .ToListAsync();
 
-            var avgRatingDict = avgRatings.ToDictionary(x => x.MovieID, x => x.AvgRating);
-            ViewData["AverageRatings"] = avgRatingDict;
+            ViewData["AverageRatings"] = avgRatings.ToDictionary(x => x.Key, x => x.AvgRating);
             ViewData["CurrentPage"] = page;
             ViewData["TotalPages"] = totalPages;
 
             return View(movies);
         }
 
-        // GET: MoviesList/Search
+        private async Task<List<Movie>> GetRecommendedMovies(int userId)
+        {
+            try
+            {
+                var reviews = await _context.Reviews
+                    .Where(r => r.IsApproved)
+                    .ToListAsync();
+
+                var users = reviews.Select(r => r.UserID).Distinct().ToList();
+                var movies = await _context.Movies.Select(m => m.ID).ToListAsync();
+
+                var userIndex = users.Select((u, i) => new { u, i }).ToDictionary(x => x.u, x => x.i);
+                var movieIndex = movies.Select((m, i) => new { m, i }).ToDictionary(x => x.m, x => x.i);
+
+                var ratingsMatrix = Matrix<double>.Build.Dense(users.Count, movies.Count, 0);
+
+                foreach (var review in reviews)
+                {
+                    int ui = userIndex[review.UserID];
+                    int mi = movieIndex[review.MovieID];
+                    ratingsMatrix[ui, mi] = review.Rating;
+                }
+
+                var userRatings = ratingsMatrix.Row(userIndex[userId]);
+
+                int latentFeatures = 10;
+                var rand = new Random();
+
+                var P = Matrix<double>.Build.Random(users.Count, latentFeatures);
+                var Q = Matrix<double>.Build.Random(movies.Count, latentFeatures);
+
+                double alpha = 0.005;
+                double beta = 0.02;
+                int iterations = 100;
+
+                for (int step = 0; step < iterations; step++)
+                {
+                    for (int u = 0; u < users.Count; u++)
+                    {
+                        for (int m = 0; m < movies.Count; m++)
+                        {
+                            if (ratingsMatrix[u, m] > 0)
+                            {
+                                double e = ratingsMatrix[u, m] - P.Row(u) * Q.Row(m).ToColumnMatrix().Column(0);
+                                for (int k = 0; k < latentFeatures; k++)
+                                {
+                                    P[u, k] += alpha * (2 * e * Q[m, k] - beta * P[u, k]);
+                                    Q[m, k] += alpha * (2 * e * P[u, k] - beta * Q[m, k]);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                var predicted = P * Q.Transpose();
+                var predictedRatings = predicted.Row(userIndex[userId]);
+
+                var userRatedMovieIds = reviews
+                    .Where(r => r.UserID == userId)
+                    .Select(r => r.MovieID)
+                    .ToHashSet();
+
+                var recommendations = predictedRatings
+                    .Select((score, idx) => new { MovieID = movies[idx], Score = score })
+                    .Where(x => !userRatedMovieIds.Contains(x.MovieID))
+                    .OrderByDescending(x => x.Score)
+                    .Take(10)
+                    .Select(x => x.MovieID)
+                    .ToList();
+
+                return await _context.Movies
+                    .Where(m => recommendations.Contains(m.ID))
+                    .ToListAsync();
+            }
+            catch
+            {
+                return await _context.Movies
+                    .OrderByDescending(m => m.ReleaseDate)
+                    .Take(10)
+                    .ToListAsync();
+            }
+        }
+        private double CalculatePearsonSimilarity(Dictionary<int, double> user1Ratings, Dictionary<int, double> user2Ratings, List<int> commonMovies)
+        {
+            if (commonMovies.Count < 2) return 0;
+
+            var sum1 = commonMovies.Sum(m => user1Ratings[m]);
+            var sum2 = commonMovies.Sum(m => user2Ratings[m]);
+            var sum1Sq = commonMovies.Sum(m => Math.Pow(user1Ratings[m], 2));
+            var sum2Sq = commonMovies.Sum(m => Math.Pow(user2Ratings[m], 2));
+            var pSum = commonMovies.Sum(m => user1Ratings[m] * user2Ratings[m]);
+
+            var num = pSum - (sum1 * sum2 / commonMovies.Count);
+            var den = Math.Sqrt((sum1Sq - Math.Pow(sum1, 2) / commonMovies.Count) * (sum2Sq - Math.Pow(sum2, 2) / commonMovies.Count));
+
+            return den == 0 ? 0 : num / den;
+        }
+
         public async Task<IActionResult> Search(string query)
         {
             if (string.IsNullOrWhiteSpace(query))
@@ -170,7 +299,6 @@ namespace DKMovies.Controllers
                 .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
                 .AsQueryable();
 
-            // Apply filters
             if (!string.IsNullOrWhiteSpace(model.Title))
                 query = query.Where(m => m.Title.Contains(model.Title));
             if (!string.IsNullOrWhiteSpace(model.Director))
@@ -186,7 +314,6 @@ namespace DKMovies.Controllers
             if (model.ReleaseTo.HasValue)
                 query = query.Where(m => m.ReleaseDate <= model.ReleaseTo);
 
-            // Apply sorting
             query = model.Sort switch
             {
                 "date_asc" => query.OrderBy(m => m.ReleaseDate),
@@ -195,7 +322,6 @@ namespace DKMovies.Controllers
                 _ => query.OrderBy(m => m.Title)
             };
 
-            // Pagination
             var totalMovies = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalMovies / (double)PageSize);
 
@@ -204,7 +330,6 @@ namespace DKMovies.Controllers
                 .Take(PageSize)
                 .ToListAsync();
 
-            // Compute average ratings
             var movieIds = movies.Select(m => m.ID).ToList();
             var avgRatings = await _context.Reviews
                 .Where(r => movieIds.Contains(r.MovieID) && r.IsApproved)
@@ -218,10 +343,9 @@ namespace DKMovies.Controllers
 
             ViewBag.SearchModel = model;
 
-            return View("Index", movies); // Reuse the same view as Index
+            return View("Index", movies);
         }
 
-        // GET: MoviesList/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -235,17 +359,15 @@ namespace DKMovies.Controllers
                 .Include(m => m.MovieGenres)
                     .ThenInclude(mg => mg.Genre)
                 .Include(m => m.Reviews)
-                    .ThenInclude(r => r.User) // 🔥 Add this line to load user info
+                    .ThenInclude(r => r.User)
                 .FirstOrDefaultAsync(m => m.ID == id);
 
             if (movie == null)
                 return NotFound();
 
-            // Calculate average rating
             var averageRating = movie.Reviews.Any() ? movie.Reviews.Average(r => r.Rating) : 0;
             ViewData["AverageRating"] = averageRating;
 
-            // Check watchlist status
             bool isInWatchlist = false;
             if (User.Identity.IsAuthenticated && User.IsInRole("User"))
             {
@@ -256,7 +378,6 @@ namespace DKMovies.Controllers
 
             ViewData["IsInWatchlist"] = isInWatchlist;
 
-            // Check reviewed by this user
             bool hasUserReviewed = false;
 
             if (User.Identity?.IsAuthenticated == true && User.IsInRole("User"))
@@ -271,7 +392,6 @@ namespace DKMovies.Controllers
             return View(movie);
         }
 
-        // GET: MoviesList/OrderTicket/5
         public IActionResult OrderTicket(int id, string search, string date, int? theaterId)
         {
             var movie = _context.Movies.Find(id);
@@ -285,7 +405,6 @@ namespace DKMovies.Controllers
                 .Where(s => s.MovieID == id && s.StartTime >= now)
                 .ToList();
 
-            // No filters should affect what's passed to the view
             ViewData["Movie"] = movie;
             ViewData["Search"] = search;
             ViewData["Date"] = date;
@@ -294,13 +413,10 @@ namespace DKMovies.Controllers
             return View(allShowtimes);
         }
 
-
-
-        // GET: MoviesList/OrderTicketDetails/5 (id = ShowTimeID)
         public IActionResult OrderTicketDetails(int id)
         {
             var showtime = _context.ShowTimes
-                .Include(s => s.Movie)                // ✅ Include Movie here
+                .Include(s => s.Movie)
                 .Include(s => s.Auditorium)
                     .ThenInclude(a => a.Seats)
                 .FirstOrDefault(s => s.ID == id);
@@ -319,7 +435,6 @@ namespace DKMovies.Controllers
 
             var seats = showtime.Auditorium.Seats?.ToList() ?? new List<Seat>();
 
-            // Get all the seat IDs that are already taken for this showtime
             var takenSeats = _context.TicketSeats
                 .Include(ts => ts.Ticket)
                 .Where(ts => ts.Ticket != null && ts.Ticket.ShowTimeID == id)
@@ -335,9 +450,6 @@ namespace DKMovies.Controllers
         [Authorize(Roles = "User")]
         public IActionResult ConfirmOrder(int ShowTimeID, List<int> SelectedSeats)
         {
-            // ✅ Check authentication and role are handled by [Authorize]
-
-            // ✅ Get user ID from claims
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
@@ -345,7 +457,6 @@ namespace DKMovies.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // ✅ Validate ShowTime
             var showTime = _context.ShowTimes
                 .Include(st => st.Tickets)
                     .ThenInclude(t => t.TicketSeats)
@@ -356,7 +467,6 @@ namespace DKMovies.Controllers
                 return NotFound("ShowTime not found.");
             }
 
-            // ✅ Check available seats
             var availableSeats = _context.Seats
                 .Where(s => SelectedSeats.Contains(s.ID))
                 .ToList();
@@ -373,7 +483,6 @@ namespace DKMovies.Controllers
                 return RedirectToAction("OrderTicketDetails", new { id = ShowTimeID });
             }
 
-            // ✅ Create Ticket
             var ticket = new Ticket
             {
                 UserID = userId,
@@ -382,9 +491,8 @@ namespace DKMovies.Controllers
             };
 
             _context.Tickets.Add(ticket);
-            _context.SaveChanges(); // To get Ticket ID
+            _context.SaveChanges();
 
-            // ✅ Create TicketSeats
             var ticketSeats = availableSeats.Select(seat => new TicketSeat
             {
                 TicketID = ticket.ID,
@@ -397,8 +505,6 @@ namespace DKMovies.Controllers
             TempData["Success"] = "Seats reserved successfully!";
             return RedirectToAction("OrderConfirmation", new { ticketId = ticket.ID });
         }
-
-
 
         public IActionResult OrderConfirmation(int ticketId)
         {
@@ -419,6 +525,5 @@ namespace DKMovies.Controllers
 
             return View(ticket);
         }
-
     }
 }
