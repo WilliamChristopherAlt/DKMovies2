@@ -48,13 +48,6 @@ INSERT INTO Languages (Name, Description) VALUES
 ('Chinese', 'Spoken mainly in China with several regional dialects'),
 ('Spanish', 'Widely spoken in Spain, Latin America, and parts of the US');
 
--- PAYMENT METHODS
-INSERT INTO PaymentMethods (Name, Description) VALUES
-('Credit Card', 'Visa, MasterCard, AMEX'),
-('PayPal', 'Online payments'),
-('Cash', 'Physical currency at the counter'),
-('Apple Pay', 'Mobile payment service');
-
 -- EMPLOYEE ROLES
 INSERT INTO EmployeeRoles (Name, Description) VALUES
 ('Manager', 'Theater manager'),
@@ -85,7 +78,17 @@ INSERT INTO Users (Username, Email, PasswordHash, FullName, Phone, BirthDate, Ge
 ('jacob_harris', 'jacob@example.com', 'hash17', 'Jacob Harris', '8080808080', '1983-05-15', 'Male', 'men/8.jpg'),
 ('olivia_taylor', 'olivia@example.com', 'hash18', 'Olivia Taylor', '9090909090', '1998-10-22', 'Female', 'women/8.jpg'),
 ('benjamin_young', 'benjamin@example.com', 'hash19', 'Benjamin Young', '1011121314', '1992-04-08', 'Male', 'men/9.jpg'),
-('maggie_scott', 'maggie@example.com', 'hash20', 'Maggie Scott', '2122232425', '1991-01-29', 'Female', 'women/9.jpg');
+('maggie_scott', 'maggie@example.com', 'hash20', 'Maggie Scott', '2122232425', '1991-01-29', 'Female', 'women/9.jpg'),
+('nathan_green', 'nathan@example.com', 'hash21', 'Nathan Green', '3131313131', '1985-06-17', 'Male', 'men/10.jpg'),
+('amelia_hall', 'amelia@example.com', 'hash22', 'Amelia Hall', '4141414141', '1990-09-09', 'Female', 'women/10.jpg'),
+('daniel_edwards', 'daniel@example.com', 'hash23', 'Daniel Edwards', '5151515151', '1982-03-03', 'Male', 'men/11.jpg'),
+('sophia_moore', 'sophia@example.com', 'hash24', 'Sophia Moore', '6161616161', '1996-12-12', 'Female', 'women/11.jpg'),
+('liam_thomas', 'liam@example.com', 'hash25', 'Liam Thomas', '7171717171', '1988-07-07', 'Male', 'men/12.jpg'),
+('isabella_wright', 'isabella@example.com', 'hash26', 'Isabella Wright', '8181818181', '1994-04-04', 'Female', 'women/12.jpg'),
+('ethan_scott', 'ethan@example.com', 'hash27', 'Ethan Scott', '9191919191', '1986-01-16', 'Male', 'men/13.jpg'),
+('mia_king', 'mia@example.com', 'hash28', 'Mia King', '9292929292', '1993-05-11', 'Female', 'women/13.jpg'),
+('logan_white', 'logan@example.com', 'hash29', 'Logan White', '9393939393', '1981-11-27', 'Male', 'men/14.jpg'),
+('ella_baker', 'ella@example.com', 'hash30', 'Ella Baker', '9494949494', '1997-08-30', 'Female', 'women/14.jpg');
 
 -- THEATERS
 INSERT INTO Theaters (Name, Location, Phone) VALUES
@@ -489,6 +492,7 @@ SET NOCOUNT OFF;
 
 GO
 
+/*
 -- REVIEWS
 INSERT INTO Reviews (MovieID, UserID, Rating, Comment, IsApproved) VALUES
 (1, 1, 5, 'Mind-blowing movie!', 1),
@@ -686,8 +690,138 @@ INSERT INTO Reviews (MovieID, UserID, Rating, Comment, IsApproved) VALUES
 
 (49, 15, 4, 'Great film, but could have had more suspense.', 1),
 (49, 16, 5, 'Incredible, a must-see for anyone!', 1),
-(49, 17, 5, 'Fantastic, couldn’t take my eyes off the screen!', 1);
+(49, 17, 5, 'Fantastic, couldn’t take my eyes off the screen!', 1); */
+-- ===============================
+-- Clear reviews for fresh run (optional)
+-- DELETE FROM Reviews;
+-- ===============================
 
+-- Assumptions:
+-- Tables: Movies(ID), Users(ID), Genres(ID), MovieGenres(MovieID, GenreID), Reviews
+-- Reviews table has columns: ID (identity), MovieID, UserID, Rating, Comment, CreatedAt, IsApproved
+
+-- Temp table for User-Genre biases (like/dislike)
+DECLARE @UserGenreBias TABLE (
+    UserID INT,
+    GenreID INT,
+    Bias CHAR(1)  -- 'L' = like, 'D' = dislike
+);
+
+-- Insert genre biases for first 10 users (example logic)
+-- Each user likes 2 genres, dislikes 2 genres (cycled by user ID)
+INSERT INTO @UserGenreBias (UserID, GenreID, Bias)
+SELECT u.ID, g.ID,
+       CASE
+           WHEN g.ID IN ((u.ID % 10) + 1, ((u.ID + 1) % 10) + 1) THEN 'L'
+           WHEN g.ID IN (((u.ID + 2) % 10) + 1, ((u.ID + 3) % 10) + 1) THEN 'D'
+           ELSE NULL
+       END
+FROM (SELECT * ID FROM Users ORDER BY ID) u
+CROSS JOIN (SELECT ID FROM Genres) g
+WHERE g.ID IN ((u.ID % 10) + 1, ((u.ID + 1) % 10) + 1, ((u.ID + 2) % 10) + 1, ((u.ID + 3) % 10) + 1);
+
+
+-- Table variable to store generated reviews before insert
+DECLARE @Reviews TABLE (
+    MovieID INT,
+    UserID INT,
+    Rating INT,
+    Comment NVARCHAR(MAX)
+);
+
+-- Variables for looping
+DECLARE @MovieID INT;
+DECLARE @ReviewCount INT;
+DECLARE @UserID INT;
+DECLARE @Liked BIT;
+DECLARE @Disliked BIT;
+DECLARE @Rating INT;
+DECLARE @Comment NVARCHAR(MAX);
+
+-- Temporary table to hold selected users for each movie (avoid duplicates)
+DECLARE @SelectedUsers TABLE (
+    UserID INT PRIMARY KEY
+);
+
+-- Cursor for movies (all movies)
+DECLARE movie_cursor CURSOR FOR 
+SELECT ID FROM Movies;
+
+OPEN movie_cursor;
+FETCH NEXT FROM movie_cursor INTO @MovieID;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    -- For each movie, generate random number of reviews between 2 and 10
+    SET @ReviewCount = (ABS(CHECKSUM(NEWID())) % 9) + 2;
+
+    -- Clear previous user selections
+    DELETE FROM @SelectedUsers;
+
+    -- Select distinct random users from first 10 users
+    INSERT INTO @SelectedUsers (UserID)
+    SELECT TOP (@ReviewCount) ID
+    FROM (SELECT TOP 10 ID FROM Users ORDER BY ID) AS First10Users
+    ORDER BY NEWID();
+
+    -- Cursor for selected users of this movie
+    DECLARE user_cursor CURSOR FOR 
+    SELECT UserID FROM @SelectedUsers;
+
+    OPEN user_cursor;
+    FETCH NEXT FROM user_cursor INTO @UserID;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        -- Determine if user likes or dislikes any genre of this movie
+        SET @Liked = 0;
+        SET @Disliked = 0;
+
+        IF EXISTS (
+            SELECT 1
+            FROM MovieGenres mg
+            JOIN @UserGenreBias ub ON ub.GenreID = mg.GenreID AND ub.UserID = @UserID AND ub.Bias = 'L'
+            WHERE mg.MovieID = @MovieID
+        )
+        SET @Liked = 1;
+
+        IF EXISTS (
+            SELECT 1
+            FROM MovieGenres mg
+            JOIN @UserGenreBias ub ON ub.GenreID = mg.GenreID AND ub.UserID = @UserID AND ub.Bias = 'D'
+            WHERE mg.MovieID = @MovieID
+        )
+        SET @Disliked = 1;
+
+        -- Assign rating based on biases
+        IF @Liked = 1 AND @Disliked = 0
+            SET @Rating = (ABS(CHECKSUM(NEWID())) % 2) + 4; -- 4 or 5
+        ELSE IF @Disliked = 1 AND @Liked = 0
+            SET @Rating = (ABS(CHECKSUM(NEWID())) % 2) + 1; -- 1 or 2
+        ELSE
+            SET @Rating = (ABS(CHECKSUM(NEWID())) % 5) + 1; -- 1 to 5 random
+
+        SET @Comment = CONCAT('Sample comment by user ', @UserID);
+
+        -- Insert into temp reviews table
+        INSERT INTO @Reviews (MovieID, UserID, Rating, Comment)
+        VALUES (@MovieID, @UserID, @Rating, @Comment);
+
+        FETCH NEXT FROM user_cursor INTO @UserID;
+    END
+
+    CLOSE user_cursor;
+    DEALLOCATE user_cursor;
+
+    FETCH NEXT FROM movie_cursor INTO @MovieID;
+END
+
+CLOSE movie_cursor;
+DEALLOCATE movie_cursor;
+
+-- Finally insert all generated reviews into Reviews table
+INSERT INTO Reviews (MovieID, UserID, Rating, Comment, IsApproved)
+SELECT MovieID, UserID, Rating, Comment, 1 AS IsApproved FROM @Reviews;
 
 UPDATE Movies SET TrailerUrl = 'https://www.youtube.com/watch?v=YoHD9XEInc0' 
 WHERE Title = 'Inception';
