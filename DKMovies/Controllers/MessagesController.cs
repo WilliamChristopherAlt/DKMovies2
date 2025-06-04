@@ -146,7 +146,7 @@ namespace DKMovies.Controllers
                 {
                     AdminID = admin.ID,
                     // Removed UserID = userId, - This was causing the constraint violation
-                    Title = $"Tin nhắn mới từ {user.Username}",
+                    Title = $"New message from {user.Username}",
                     Message = trimmedText.Length > 100 ? trimmedText.Substring(0, 100) + "..." : trimmedText,
                     NotificationType = NotificationType.NewMessage.GetDisplayName(),
                     CreatedAt = DateTime.Now,
@@ -272,7 +272,7 @@ namespace DKMovies.Controllers
             var notification = new Notification
             {
                 UserID = userId,
-                Title = "Bạn có tin nhắn mới từ DKMovies",
+                Title = "You have a new message from DKMovies",
                 Message = trimmedText.Length > 100 ? trimmedText.Substring(0, 100) + "..." : trimmedText,
                 NotificationType = NotificationType.NewMessage.GetDisplayName(),
                 CreatedAt = DateTime.Now,

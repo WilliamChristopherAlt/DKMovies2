@@ -22,8 +22,6 @@ namespace DKMovies.Models
         public string Description { get; set; }
 
         [NotMapped]
-        public ICollection<Director> Directors { get; set; }
-        [NotMapped]
         public ICollection<Movie> Movies { get; set; }
     }
 
@@ -98,17 +96,44 @@ namespace DKMovies.Models
         [Display(Name = "Biography")]
         public string Biography { get; set; }
 
-        [Display(Name = "Country")]
-        public int? CountryID { get; set; }
-
-        [ForeignKey("CountryID")]
-        public Country Country { get; set; }
+        [MaxLength(255)]
+        [Display(Name = "Place of Birth")]
+        public string? PlaceOfBirth { get; set; }
 
         [MaxLength(500)]
         [Display(Name = "Profile Image Path")]
         public string? ProfileImagePath { get; set; }
 
         public ICollection<Movie> Movies { get; set; }
+    }
+
+    // 12. ACTORS
+    public class Actor
+    {
+        [Key]
+        [Display(Name = "Actor ID")]
+        public int ID { get; set; }
+
+        [Required, MaxLength(255)]
+        [Display(Name = "Full Name")]
+        public string FullName { get; set; }
+
+        [Display(Name = "Biography")]
+        public string? Biography { get; set; }
+
+        [Display(Name = "Date of Birth")]
+        [DataType(DataType.Date)]
+        public DateTime? DateOfBirth { get; set; }
+
+        [MaxLength(255)]
+        [Display(Name = "Place of Birth")]
+        public string? PlaceOfBirth { get; set; }
+
+        [MaxLength(255)]
+        [Display(Name = "Profile Image Path")]
+        public string? ProfileImagePath { get; set; }
+
+        public ICollection<MovieActor> MovieActors { get; set; }
     }
 
     // 6. USERS
@@ -306,7 +331,34 @@ namespace DKMovies.Models
         public ICollection<MovieGenre> MovieGenres { get; set; }
         public ICollection<ShowTime> ShowTimes { get; set; }
         public ICollection<Review> Reviews { get; set; }
+        public ICollection<MovieActor> MovieActors { get; set; }
+        [NotMapped]
+        public IEnumerable<Actor> Actors => MovieActors?.Select(ma => ma.Actor);
     }
+
+    public class MovieActor
+    {
+        [Key]
+        [Display(Name = "Movie-Actor ID")]
+        public int ID { get; set; }
+
+        [Display(Name = "Movie ID")]
+        public int MovieID { get; set; }
+
+        [ForeignKey("MovieID")]
+        public Movie Movie { get; set; }
+
+        [Display(Name = "Actor ID")]
+        public int ActorID { get; set; }
+
+        [ForeignKey("ActorID")]
+        public Actor Actor { get; set; }
+
+        [MaxLength(255)]
+        [Display(Name = "Role")]
+        public string? Role { get; set; }
+    }
+
 
     // 11. MOVIEGENRE
     public class MovieGenre

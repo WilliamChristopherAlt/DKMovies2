@@ -1,53 +1,139 @@
 ﻿@model DKMovies.Models.Director
-
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Director Details";
 }
 
-<h1>Details</h1>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        <i class="bi bi-person-circle me-2"></i>Director Details
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-4">
+                            @{
+                                var imagePath = string.IsNullOrWhiteSpace(Model.ProfileImagePath)
+                                ? Url.Content("~/images/directors/default.png")
+                                : Url.Content($"~/images/directors/{Model.ProfileImagePath}");
+                            }
+                            <img src="@imagePath"
+                                 alt="@Model.FullName"
+                                 class="img-fluid rounded shadow"
+                                 style="max-width: 250px; height: auto;"
+                                 onerror="this.src='@Url.Content("~/images/directors/default.png")'" />
+                        </div>
+                        <div class="col-md-8">
+                            <dl class="row">
+                                <dt class="col-sm-4">@Html.DisplayNameFor(model => model.FullName)</dt>
+                                <dd class="col-sm-8">
+                                    <strong>@Html.DisplayFor(model => model.FullName)</strong>
+                                </dd>
 
-<div>
-    <h4>Director</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.FullName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.FullName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DateOfBirth)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DateOfBirth)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Biography)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Biography)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Country)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Country.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ProfileImagePath)
-        </dt>
-        <dd class="col-sm-10">
-            @{
-                var imagePath = string.IsNullOrWhiteSpace(Model.ProfileImagePath)
-                ? Url.Content("~/images/directors/default.jpg")
-                : Url.Content($"~/images/directors/{Model.ProfileImagePath}");
-            }
-            <img src="@imagePath" alt="Profile Image" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px;" />
-        </dd>
-    </dl>
+                                <dt class="col-sm-4">@Html.DisplayNameFor(model => model.DateOfBirth)</dt>
+                                <dd class="col-sm-8">
+                                    @if (Model.DateOfBirth.HasValue)
+                                    {
+                                        @Model.DateOfBirth.Value.ToString("MMMM dd, yyyy")
+
+                                        var age = DateTime.Today.Year - Model.DateOfBirth.Value.Year;
+                                        if (Model.DateOfBirth.Value.Date > DateTime.Today.AddYears(-age))
+                                        {
+                                            age--;
+                                        }
+                                        <small class="text-muted">(Age: @age)</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not specified</span>
+                                    }
+                                </dd>
+
+                                <dt class="col-sm-4">@Html.DisplayNameFor(model => model.PlaceOfBirth)</dt>
+                                <dd class="col-sm-8">
+                                    @if (!string.IsNullOrWhiteSpace(Model.PlaceOfBirth))
+                                    {
+                                        @Html.DisplayFor(model => model.PlaceOfBirth)
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not specified</span>
+                                    }
+                                </dd>
+
+                                <dt class="col-sm-4">Movies Directed</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-primary">@(Model.Movies?.Count ?? 0) movies</span>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Biography))
+                    {
+                        <hr />
+                        <div class="mt-4">
+                            <h5><i class="bi bi-book me-2"></i>Biography</h5>
+                            <p class="text-justify">@Model.Biography</p>
+                        </div>
+                    }
+
+                    @if (Model.Movies != null && Model.Movies.Any())
+                    {
+                        <hr />
+                        <div class="mt-4">
+                            <h5><i class="bi bi-film me-2"></i>Movies</h5>
+                            <div class="row">
+                                @foreach (var movie in Model.Movies.OrderByDescending(m => m.ReleaseDate))
+                                {
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <h6 class="card-title">@movie.Title</h6>
+                                                <p class="card-text">
+                                                    @if (movie.ReleaseDate.HasValue)
+                                                    {
+                                                        <small class="text-muted">
+                                                            <i class="bi bi-calendar3 me-1"></i>@movie.ReleaseDate.Value.Year
+                                                        </small>
+                                                    }
+                                                    @if (movie.DurationMinutes > 0)
+                                                    {
+                                                        <small class="text-muted ms-2">
+                                                            <i class="bi bi-clock me-1"></i>@movie.DurationMinutes min
+                                                        </small>
+                                                    }
+                                                </p>
+                                                <a asp-controller="MoviesList" asp-action="Details" asp-route-id="@movie.ID" class="btn btn-sm btn-outline-primary">
+                                                    View Movie
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Back to List
+                        </a>
+                        <div>
+                            <a asp-action="Edit" asp-route-id="@Model?.ID" class="btn btn-primary">
+                                <i class="bi bi-pencil me-1"></i>Edit
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.ID">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+
+<!-- Load Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />

@@ -57,11 +57,72 @@
         margin-top: 1rem;
     }
 
+    .director-section {
+        background: #fff;
+        padding: 2rem;
+        margin-top: 2rem;
+        border-left: 4px solid #6c757d;
+        border-radius: 8px;
+    }
+
+    .director-card {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        transition: box-shadow 0.3s ease;
+    }
+
+        .director-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+    .director-image {
+        width: 120px;
+        height: 160px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid #dee2e6;
+    }
+
+    .cast-section {
+        background: #fff;
+        padding: 2rem;
+        margin-top: 2rem;
+        border-left: 4px solid #28a745;
+        border-radius: 8px;
+    }
+
+    .cast-item {
+        background: #f8f9fa;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        transition: box-shadow 0.3s ease;
+    }
+
+        .cast-item:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .cast-item:last-child {
+            margin-bottom: 0;
+        }
+
+    .actor-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 2px solid #dee2e6;
+    }
+
     .reviews-section {
         background: #f8f9fa;
         padding: 2rem;
         margin-top: 2rem;
-        border-left: 4px solid #007bff;
+        border-left: 4px solid #6c757d;
     }
 
     .review-item {
@@ -183,10 +244,6 @@
                         </form>
                     }
 
-                    @* <button class="btn btn-link text-light mb-2 text-decoration-none"> *@
-                    @*     <i class="bi bi-star me-1"></i> Rate *@
-                    @* </button> *@
-
                     <a href="@Url.Action("OrderTicket", "Tickets", new { id = Model.ID })" class="btn btn-link text-light text-decoration-none">
                         <i class="bi bi-ticket-perforated me-1"></i> Order Ticket
                     </a>
@@ -203,6 +260,135 @@
         </div>
     </div>
 </div>
+
+<!-- Director Section -->
+@if (Model.Director != null)
+{
+    <div class="container">
+        <div class="director-section">
+            <h3 class="text-dark mb-4">
+                <i class="bi bi-camera-reels me-2"></i>Director
+            </h3>
+
+            @{
+                var directorImagePath = string.IsNullOrWhiteSpace(Model.Director.ProfileImagePath)
+                ? Url.Content("~/images/directors/default.png")
+                : Url.Content($"~/images/directors/{Model.Director.ProfileImagePath}");
+            }
+
+            <a href="@Url.Action("Details", "DirectorsList", new { id = Model.Director.ID })" class="text-decoration-none text-reset">
+                <div class="director-card">
+                    <div class="row align-items-start">
+                        <div class="col-auto">
+                            <img src="@directorImagePath"
+                                 alt="@Model.Director.FullName"
+                                 class="director-image"
+                                 onerror="this.src='@Url.Content("~/images/directors/default.png")'" />
+                        </div>
+                        <div class="col">
+                            <h5 class="text-dark mb-2">@Model.Director.FullName</h5>
+
+                            @if (Model.Director.DateOfBirth.HasValue)
+                            {
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar3 me-1"></i>
+                                        Born: @Model.Director.DateOfBirth.Value.ToString("MMMM d, yyyy")
+                                        @if (Model.Director.DateOfBirth.Value <= DateTime.Now)
+                                        {
+                                            var age = DateTime.Now.Year - Model.Director.DateOfBirth.Value.Year;
+                                            if (DateTime.Now.DayOfYear < Model.Director.DateOfBirth.Value.DayOfYear)
+                                                age--;
+                                            <span>(Age @age)</span>
+                                        }
+                                    </small>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(Model.Director.PlaceOfBirth))
+                            {
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-geo-alt me-1"></i>@Model.Director.PlaceOfBirth
+                                    </small>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(Model.Director.Biography))
+                            {
+                                <div class="mt-3">
+                                    <p class="text-muted mb-0" style="font-size: 0.95rem; line-height: 1.5;">
+                                        @{
+                                            var biography = Model.Director.Biography;
+                                            var truncatedBiography = biography.Length > 300
+                                            ? biography.Substring(0, 300) + "..."
+                                            : biography;
+                                        }
+                                        @truncatedBiography
+                                    </p>
+                                </div>
+                            }
+
+                            <div class="mt-3">
+                                <small class="text-primary">
+                                    <i class="bi bi-arrow-right me-1"></i>View full profile
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+}
+
+<!-- Cast Section -->
+@if (Model.MovieActors != null && Model.MovieActors.Any())
+{
+    <div class="container">
+        <div class="cast-section">
+            <h3 class="text-dark mb-4">
+                <i class="bi bi-people-fill me-2"></i>Cast
+            </h3>
+
+            @foreach (var movieActor in Model.MovieActors)
+            {
+                var actor = movieActor.Actor;
+                var actorImagePath = string.IsNullOrWhiteSpace(actor?.ProfileImagePath)
+                ? Url.Content("~/images/actors/default.png")
+                : Url.Content($"~/images/actors/{actor.ProfileImagePath}");
+
+                <a href="@Url.Action("Details", "Actors", new { id = actor?.ID })" class="text-decoration-none text-reset">
+                    <div class="cast-item">
+                        <div class="d-flex align-items-center">
+                            <img src="@actorImagePath"
+                                 alt="@actor?.FullName"
+                                 class="actor-image me-3"
+                                 onerror="this.src='@Url.Content("~/images/actors/default.png")'" />
+
+                            <div class="flex-grow-1">
+                                <div class="d-flex flex-wrap align-items-center">
+                                    @if (!string.IsNullOrWhiteSpace(movieActor.Role))
+                                    {
+                                        <strong class="text-primary me-2">@movieActor.Role:</strong>
+                                    }
+                                    <span class="text-dark fs-6">@actor?.FullName</span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(actor?.PlaceOfBirth))
+                                {
+                                    <small class="text-muted d-block mt-1">
+                                        <i class="bi bi-geo-alt me-1"></i>@actor.PlaceOfBirth
+                                    </small>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            }
+
+        </div>
+    </div>
+}
 
 @if (similarMovies != null && similarMovies.Any())
 {

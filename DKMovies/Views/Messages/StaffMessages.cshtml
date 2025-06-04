@@ -541,12 +541,18 @@
             });
         }
 
-        // Enter to send (Shift+Enter for new line)
+        // Enter to send (Shift+Enter for new line) - FIXED VERSION
         if (messageInput) {
             messageInput.addEventListener("keydown", function(e) {
                 if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    messageForm.dispatchEvent(new Event("submit"));
+
+                    // Check if message is not empty
+                    const messageText = this.value.trim();
+                    if (messageText && !sendButton.disabled) {
+                        // Submit the form directly
+                        messageForm.submit();
+                    }
                 }
             });
 

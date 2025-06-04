@@ -15,11 +15,13 @@ namespace DKMovies.Models
         public DbSet<Rating> Ratings { get; set; }
         public DbSet<Language> Languages { get; set; }
         public DbSet<Director> Directors { get; set; }
+        public DbSet<Actor> Actors { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Theater> Theaters { get; set; }
         public DbSet<Auditorium> Auditoriums { get; set; }
         public DbSet<Seat> Seats { get; set; }
         public DbSet<Movie> Movies { get; set; }
+        public DbSet<MovieActor> MovieActors { get; set; }
         public DbSet<MovieGenre> MovieGenres { get; set; }
         public DbSet<WatchListSingular> WatchList { get; set; }
         public DbSet<ShowTime> ShowTimes { get; set; }
@@ -70,6 +72,8 @@ namespace DKMovies.Models
             modelBuilder.Entity<LoginAttempt>().ToTable("LoginAttempts");
             modelBuilder.Entity<Notification>().ToTable("Notifications");
 
+            modelBuilder.Entity<Actor>().ToTable("Actors");
+            modelBuilder.Entity<MovieActor>().ToTable("MovieActors");
 
             modelBuilder.Entity<Ticket>()
                 .Property(t => t.Status)
@@ -218,12 +222,6 @@ namespace DKMovies.Models
 
 
             // 1. Countries
-            modelBuilder.Entity<Country>()
-                .HasMany(c => c.Directors)
-                .WithOne(d => d.Country)
-                .HasForeignKey(d => d.CountryID)
-                .OnDelete(DeleteBehavior.SetNull);
-
             modelBuilder.Entity<Country>()
                 .HasMany(c => c.Movies)
                 .WithOne(m => m.Country)

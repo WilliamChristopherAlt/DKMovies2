@@ -23,18 +23,18 @@
         border-bottom: 1px solid #dee2e6;
     }
 
-    .messages-header h3 {
-        margin: 0;
-        color: #212529;
-        font-size: 1.25rem;
-        font-weight: 600;
-    }
+        .messages-header h3 {
+            margin: 0;
+            color: #212529;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
 
-    .messages-header p {
-        margin: 0;
-        color: #6c757d;
-        font-size: 0.9rem;
-    }
+        .messages-header p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
 
     .messages-body {
         height: 500px;
@@ -59,22 +59,22 @@
         align-items: flex-end;
     }
 
-    .message.user .message-bubble {
-        background: #007bff;
-        color: white;
-        border-bottom-right-radius: 4px;
-    }
+        .message.user .message-bubble {
+            background: #007bff;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
 
     .message.admin {
         align-items: flex-start;
     }
 
-    .message.admin .message-bubble {
-        background: #f8f9fa;
-        color: #212529;
-        border: 1px solid #dee2e6;
-        border-bottom-left-radius: 4px;
-    }
+        .message.admin .message-bubble {
+            background: #f8f9fa;
+            color: #212529;
+            border: 1px solid #dee2e6;
+            border-bottom-left-radius: 4px;
+        }
 
     .message-time {
         font-size: 0.75rem;
@@ -96,11 +96,11 @@
         color: #6c757d;
     }
 
-    .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
 
     .input-section {
         padding: 1.5rem 2rem;
@@ -132,11 +132,11 @@
         transition: border-color 0.15s ease-in-out;
     }
 
-    .input-form textarea:focus {
-        outline: none;
-        border-color: #007bff;
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-    }
+        .input-form textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+        }
 
     .char-counter {
         position: absolute;
@@ -154,13 +154,13 @@
         text-align: center;
     }
 
-    .new-messages-line::before,
-    .new-messages-line::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background: #dc3545;
-    }
+        .new-messages-line::before,
+        .new-messages-line::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #dc3545;
+        }
 
     .new-messages-text {
         padding: 0 1rem;
@@ -186,34 +186,37 @@
         transition: background-color 0.15s ease-in-out;
     }
 
-    .send-btn:hover {
-        background: #0056b3;
-    }
+        .send-btn:hover {
+            background: #0056b3;
+        }
 
-    .send-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
     @@media (max-width: 768px) {
-        .messages-container {
-            margin: 1rem;
-            border-radius: 6px;
-        }
+        .messages-container
 
-        .messages-header,
-        .input-section {
-            padding: 1rem 1.5rem;
-        }
+    {
+        margin: 1rem;
+        border-radius: 6px;
+    }
 
-        .messages-body {
-            height: 400px;
-            padding: 1rem;
-        }
+    .messages-header,
+    .input-section {
+        padding: 1rem 1.5rem;
+    }
 
-        .message-bubble {
-            max-width: 85%;
-        }
+    .messages-body {
+        height: 400px;
+        padding: 1rem;
+    }
+
+    .message-bubble {
+        max-width: 85%;
+    }
+
     }
 </style>
 
@@ -237,8 +240,8 @@
             }
             else
             {
-                    var lastReadAdminMessageTime = ViewBag.LastReadAdminMessageTime as DateTime?;
-                    bool hasShownNewMessagesLine = false;
+                var lastReadAdminMessageTime = ViewBag.LastReadAdminMessageTime as DateTime?;
+                bool hasShownNewMessagesLine = false;
 
                 @foreach (var msg in Model)
                 {
@@ -246,8 +249,8 @@
                     var content = System.Text.Encoding.UTF8.GetString(msg.MessageText);
 
                     // Show "new messages" line before the first unread admin message
-                    @if (!hasShownNewMessagesLine && !msg.IsFromUser && 
-                         (lastReadAdminMessageTime == null || msg.SentAt > lastReadAdminMessageTime))
+                    @if (!hasShownNewMessagesLine && !msg.IsFromUser &&
+                   (lastReadAdminMessageTime == null || msg.SentAt > lastReadAdminMessageTime))
                     {
                         <div class="new-messages-line">
                             <span class="new-messages-text">New Messages</span>
@@ -329,12 +332,16 @@
             });
         }
 
-        // Enter to send (Shift+Enter for new line)
+        // Enter to send (Shift+Enter for new line) - FIXED
         if (messageInput) {
             messageInput.addEventListener("keydown", function(e) {
                 if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    messageForm.dispatchEvent(new Event("submit"));
+                    const messageText = this.value.trim();
+                    if (messageText) {
+                        // Trigger form submission properly
+                        messageForm.submit();
+                    }
                 }
             });
 

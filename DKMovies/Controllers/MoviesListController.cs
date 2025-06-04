@@ -672,6 +672,7 @@ namespace DKMovies.Controllers
                 .Include(m => m.Rating)
                 .Include(m => m.Director)
                 .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
+                .Include(m => m.MovieActors).ThenInclude(ma => ma.Actor) // Add this line
                 .Include(m => m.Reviews.Where(r => r.IsApproved)).ThenInclude(r => r.User)
                 .FirstOrDefaultAsync(m => m.ID == id);
 

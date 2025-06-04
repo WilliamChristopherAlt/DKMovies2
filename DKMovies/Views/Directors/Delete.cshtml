@@ -1,56 +1,133 @@
 ﻿@model DKMovies.Models.Director
-
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Delete Director";
 }
 
-<h1>Delete</h1>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Delete Director
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="bi bi-warning me-2"></i>
+                        <strong>Warning!</strong> Are you sure you want to delete this director? This action cannot be undone.
+                    </div>
 
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>Director</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.FullName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.FullName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DateOfBirth)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DateOfBirth)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Biography)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Biography)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Country)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Country.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ProfileImagePath)
-        </dt>
-        <dd class="col-sm-10">
-            @{
-                var imagePath = string.IsNullOrWhiteSpace(Model.ProfileImagePath)
-                ? Url.Content("~/images/directors/default.jpg")
-                : Url.Content($"~/images/directors/{Model.ProfileImagePath}");
-            }
-            <img src="@imagePath" alt="Profile Image" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px;" />
-        </dd>
-    </dl>
-    
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="ID" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
-    </form>
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-4">
+                            @{
+                                var imagePath = string.IsNullOrWhiteSpace(Model.ProfileImagePath)
+                                ? Url.Content("~/images/directors/default.png")
+                                : Url.Content($"~/images/directors/{Model.ProfileImagePath}");
+                            }
+                            <img src="@imagePath"
+                                 alt="@Model.FullName"
+                                 class="img-fluid rounded shadow"
+                                 style="max-width: 200px; height: auto;"
+                                 onerror="this.src='@Url.Content("~/images/directors/default.png")'" />
+                        </div>
+                        <div class="col-md-8">
+                            <dl class="row">
+                                <dt class="col-sm-4">@Html.DisplayNameFor(model => model.FullName)</dt>
+                                <dd class="col-sm-8">
+                                    <strong>@Html.DisplayFor(model => model.FullName)</strong>
+                                </dd>
+
+                                <dt class="col-sm-4">@Html.DisplayNameFor(model => model.DateOfBirth)</dt>
+                                <dd class="col-sm-8">
+                                    @if (Model.DateOfBirth.HasValue)
+                                    {
+                                        @Model.DateOfBirth.Value.ToString("MMMM dd, yyyy")
+
+                                        var age = DateTime.Today.Year - Model.DateOfBirth.Value.Year;
+                                        if (Model.DateOfBirth.Value.Date > DateTime.Today.AddYears(-age))
+                                        {
+                                            age--;
+                                        }
+                                        <small class="text-muted">(Age: @age)</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not specified</span>
+                                    }
+                                </dd>
+
+                                <dt class="col-sm-4">@Html.DisplayNameFor(model => model.PlaceOfBirth)</dt>
+                                <dd class="col-sm-8">
+                                    @if (!string.IsNullOrWhiteSpace(Model.PlaceOfBirth))
+                                    {
+                                        @Html.DisplayFor(model => model.PlaceOfBirth)
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not specified</span>
+                                    }
+                                </dd>
+
+                                <dt class="col-sm-4">Movies Directed</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-secondary">@(Model.Movies?.Count ?? 0) movies</span>
+                                    @if (Model.Movies != null && Model.Movies.Any())
+                                    {
+                                        <div class="mt-2">
+                                            <small class="text-muted">
+                                                <strong>Note:</strong> Deleting this director will also affect associated movie records.
+                                            </small>
+                                        </div>
+                                    }
+                                </dd>
+                            </dl>
+
+                            @if (!string.IsNullOrWhiteSpace(Model.Biography))
+                            {
+                                <div class="mt-3">
+                                    <dt>@Html.DisplayNameFor(model => model.Biography)</dt>
+                                    <dd class="mt-2">
+                                        <div class="bg-light p-3 rounded">
+                                            @if (Model.Biography.Length > 200)
+                                            {
+                                                @Model.Biography.Substring(0, 200)
+
+                                                <text>...</text>
+                                            }
+                                            else
+                                            {
+                                                @Model.Biography
+                                            }
+                                        </div>
+                                    </dd>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <form asp-action="Delete" class="d-inline">
+                        <input type="hidden" asp-for="ID" />
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Back to List
+                            </a>
+                            <div>
+                                <a asp-action="Details" asp-route-id="@Model.ID" class="btn btn-outline-info me-2">
+                                    <i class="bi bi-eye me-1"></i>View Details
+                                </a>
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you absolutely sure you want to delete this director?')">
+                                    <i class="bi bi-trash me-1"></i>Delete Director
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Load Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />

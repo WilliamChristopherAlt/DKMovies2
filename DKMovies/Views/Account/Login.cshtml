@@ -2,13 +2,10 @@
     ViewData["Title"] = "Login / Register";
     Layout = "~/Views/Shared/_Login.cshtml";
     var activeTab = ViewBag.ActiveTab as string ?? "login";
-
-    var modelState = ViewData.ModelState;
-    var usernameError = modelState?["username"]?.Errors.FirstOrDefault()?.ErrorMessage;
-    var emailError = modelState?["email"]?.Errors.FirstOrDefault()?.ErrorMessage;
-    var phoneError = modelState?["phone"]?.Errors.FirstOrDefault()?.ErrorMessage;
+    var toastError = ViewData["ToastError"] as string;
 }
 
+<!-- Pills navs -->
 <ul class="nav nav-pills nav-justified mb-3" id="ex1" role="tablist">
     <li class="nav-item" role="presentation">
         <a class="nav-link @(activeTab == "login" ? "active" : "")" id="tab-login" data-mdb-toggle="pill" href="#pills-login">Login</a>
@@ -19,7 +16,7 @@
 </ul>
 
 <div class="tab-content">
-    <!-- LOGIN TAB -->
+    <!-- LOGIN -->
     <div class="tab-pane fade @(activeTab == "login" ? "show active" : "")" id="pills-login">
         <form asp-action="Login" asp-controller="Account" method="post">
             <div class="mb-3">
@@ -49,30 +46,22 @@
         </form>
     </div>
 
-    <!-- REGISTER TAB -->
+    <!-- REGISTER -->
     <div class="tab-pane fade @(activeTab == "register" ? "show active" : "")" id="pills-register">
         <form asp-action="SignUp" asp-controller="Account" method="post" id="registerForm">
             <div class="mb-3">
                 <label for="fullName" class="form-label">Full Name</label>
-                <input type="text" class="form-control" id="fullName" name="fullName" value="@Request.Form["fullName"]" required minlength="2" maxlength="100" pattern="[a-zA-Z\s]+" title="Full name should only contain letters and spaces">
+                <input type="text" class="form-control" id="fullName" name="fullName" required minlength="2" maxlength="100" pattern="[a-zA-Z\s]+" title="Full name should only contain letters and spaces">
             </div>
 
             <div class="mb-3">
                 <label for="register-username" class="form-label">Username</label>
-                <input type="text" class="form-control @(usernameError != null ? "is-invalid" : "")" id="register-username" name="username" value="@Request.Form["username"]" required minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+" title="Username should only contain letters, numbers, and underscores">
-                @if (usernameError != null)
-                {
-                    <div class="invalid-feedback">@usernameError</div>
-                }
+                <input type="text" class="form-control" id="register-username" name="username" required minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+" title="Username should only contain letters, numbers, and underscores">
             </div>
 
             <div class="mb-3">
                 <label for="register-email" class="form-label">Email</label>
-                <input type="email" class="form-control @(emailError != null ? "is-invalid" : "")" id="register-email" name="email" value="@Request.Form["email"]" required maxlength="100">
-                @if (emailError != null)
-                {
-                    <div class="invalid-feedback">@emailError</div>
-                }
+                <input type="email" class="form-control" id="register-email" name="email" required maxlength="100">
             </div>
 
             <div class="mb-3">
@@ -90,24 +79,20 @@
 
             <div class="mb-3">
                 <label for="phone" class="form-label">Phone Number</label>
-                <input type="tel" class="form-control @(phoneError != null ? "is-invalid" : "")" id="phone" name="phone" value="@Request.Form["phone"]" pattern="[0-9+\-\s()]{10,15}" title="Please enter a valid phone number" maxlength="15">
-                @if (phoneError != null)
-                {
-                    <div class="invalid-feedback">@phoneError</div>
-                }
+                <input type="tel" class="form-control" id="phone" name="phone" pattern="[0-9+\-\s()]{10,15}" title="Please enter a valid phone number" maxlength="15">
             </div>
 
             <div class="mb-3">
                 <label for="birthDate" class="form-label">Birth Date</label>
-                <input type="date" class="form-control" id="birthDate" name="birthDate" value="@Request.Form["birthDate"]" max="2010-01-01">
+                <input type="date" class="form-control" id="birthDate" name="birthDate" max="2010-01-01">
             </div>
 
             <div class="mb-3">
                 <label for="gender" class="form-label">Gender</label>
                 <select id="gender" name="gender" class="form-select" required>
                     <option value="">-- Select --</option>
-                    <option value="Male" @(Request.Form["gender"] == "Male" ? "selected" : "")>Male</option>
-                    <option value="Female" @(Request.Form["gender"] == "Female" ? "selected" : "")>Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
                 </select>
             </div>
 
@@ -121,49 +106,71 @@
             <button type="submit" class="btn btn-primary w-100">Register</button>
         </form>
     </div>
+
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const registerForm = document.getElementById('registerForm');
-        const password = document.getElementById('register-password');
-        const confirmPassword = document.getElementById('confirmPassword');
-        const passwordMismatch = document.getElementById('password-mismatch');
-
-        function validatePasswordMatch() {
-            if (confirmPassword.value && password.value !== confirmPassword.value) {
-                confirmPassword.setCustomValidity('Passwords do not match');
-                passwordMismatch.style.display = 'block';
-                confirmPassword.classList.add('is-invalid');
-            } else {
-                confirmPassword.setCustomValidity('');
-                passwordMismatch.style.display = 'none';
-                confirmPassword.classList.remove('is-invalid');
-            }
+<!-- TOAST MESSAGE -->
+@if (!string.IsNullOrEmpty(toastError))
+{
+    <div class="toast align-items-center text-bg-danger border-0 position-fixed top-0 end-0 m-3 show" role="alert" aria-live="assertive" aria-atomic="true" style="z-index: 9999;">
+        <div class="d-flex">
+            <div class="toast-body">
+                @toastError
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+    <script>
+        const toastEl = document.querySelector('.toast');
+        if (toastEl) {
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+            setTimeout(() => toast.hide(), 3000);
         }
+    </script>
+}
 
-        password.addEventListener('input', validatePasswordMatch);
-        confirmPassword.addEventListener('input', validatePasswordMatch);
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const registerForm = document.getElementById('registerForm');
+    const password = document.getElementById('register-password');
+    const confirmPassword = document.getElementById('confirmPassword');
+    const passwordMismatch = document.getElementById('password-mismatch');
 
-        registerForm.addEventListener('submit', function (e) {
-            if (password.value !== confirmPassword.value) {
-                e.preventDefault();
-                validatePasswordMatch();
-                confirmPassword.focus();
+    function validatePasswordMatch() {
+        if (confirmPassword.value && password.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity('Passwords do not match');
+            passwordMismatch.style.display = 'block';
+            confirmPassword.classList.add('is-invalid');
+        } else {
+            confirmPassword.setCustomValidity('');
+            passwordMismatch.style.display = 'none';
+            confirmPassword.classList.remove('is-invalid');
+        }
+    }
+
+    password.addEventListener('input', validatePasswordMatch);
+    confirmPassword.addEventListener('input', validatePasswordMatch);
+
+    registerForm.addEventListener('submit', function(e) {
+        if (password.value !== confirmPassword.value) {
+            e.preventDefault();
+            validatePasswordMatch();
+            confirmPassword.focus();
+        }
+    });
+
+    const inputs = registerForm.querySelectorAll('input[required], select[required]');
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            if (this.checkValidity()) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
             }
-        });
-
-        const inputs = registerForm.querySelectorAll('input[required], select[required]');
-        inputs.forEach(input => {
-            input.addEventListener('blur', function () {
-                if (this.checkValidity()) {
-                    this.classList.remove('is-invalid');
-                    this.classList.add('is-valid');
-                } else {
-                    this.classList.remove('is-valid');
-                    this.classList.add('is-invalid');
-                }
-            });
         });
     });
+});
 </script>

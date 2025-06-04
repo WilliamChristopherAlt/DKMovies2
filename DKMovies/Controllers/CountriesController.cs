@@ -56,7 +56,6 @@ namespace DKMovies.Controllers
         public async Task<IActionResult> Create([Bind("ID,Name,Description")] Country country)
         {
             ModelState.Remove(nameof(Country.Movies));
-            ModelState.Remove(nameof(Country.Directors));
 
             // Check if the Name already exists in the database
             if (await _context.Countries.AnyAsync(c => c.Name == country.Name))
@@ -107,7 +106,6 @@ namespace DKMovies.Controllers
             }
 
             ModelState.Remove(nameof(Country.Movies));
-            ModelState.Remove(nameof(Country.Directors));
 
             // Check if the Name already exists in the database
             if (await _context.Countries.AnyAsync(c => c.Name == country.Name && c.ID != country.ID))

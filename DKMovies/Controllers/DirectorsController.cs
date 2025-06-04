@@ -22,8 +22,8 @@ namespace DKMovies.Controllers
         // GET: Directors
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.Directors.Include(d => d.Country);
-            return View(await applicationDbContext.ToListAsync());
+            var directors = await _context.Directors.ToListAsync();
+            return View(directors);
         }
 
         // GET: Directors/Details/5
@@ -35,12 +35,43 @@ namespace DKMovies.Controllers
             }
 
             var director = await _context.Directors
-                .Include(d => d.Country)
+                .Include(d => d.Movies)
+                    .ThenInclude(m => m.Reviews)
                 .FirstOrDefaultAsync(m => m.ID == id);
+
             if (director == null)
             {
                 return NotFound();
             }
+
+            // Calculate director age
+            int? directorAge = null;
+            if (director.DateOfBirth.HasValue)
+            {
+                var today = DateTime.Today;
+                directorAge = today.Year - director.DateOfBirth.Value.Year;
+                if (director.DateOfBirth.Value.Date > today.AddYears(-directorAge.Value))
+                    directorAge--;
+            }
+
+            // Get movies with ratings
+            var moviesWithRatings = director.Movies?.Select(movie => new
+            {
+                Movie = movie,
+                AverageRating = movie.Reviews?.Any() == true ? movie.Reviews.Average(r => r.Rating) : 0.0
+            }).ToList();
+
+            // Calculate statistics
+            var totalMovies = director.Movies?.Count() ?? 0;
+            var genresWorkedIn = director.Movies?.SelectMany(m => m.MovieGenres ?? new List<MovieGenre>())
+                                              .Select(mg => mg.GenreID)
+                                              .Distinct()
+                                              .Count() ?? 0;
+
+            ViewData["DirectorAge"] = directorAge;
+            ViewData["TotalMovies"] = totalMovies;
+            ViewData["GenresWorkedIn"] = genresWorkedIn;
+            ViewData["MoviesWithRatings"] = moviesWithRatings;
 
             return View(director);
         }
@@ -53,14 +84,11 @@ namespace DKMovies.Controllers
         }
 
         // POST: Directors/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ID,FullName,DateOfBirth,Biography,CountryID,ProfileImagePath")] Director director, IFormFile profileImage)
+        public async Task<IActionResult> Create([Bind("ID,FullName,DateOfBirth,Biography,PlaceOfBirth,ProfileImagePath")] Director director, IFormFile profileImage)
         {
             ModelState.Remove(nameof(Director.Movies));
-            ModelState.Remove(nameof(Director.Country));
 
             if (await _context.Directors.AnyAsync(d => d.FullName == director.FullName))
             {
@@ -91,7 +119,7 @@ namespace DKMovies.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewData["CountryID"] = new SelectList(_context.Countries, "ID", "Name", director.CountryID);
+            ViewData["CountryID"] = new SelectList(_context.Countries, "ID", "Name", director.PlaceOfBirth);
             return View(director);
         }
 
@@ -108,16 +136,14 @@ namespace DKMovies.Controllers
             {
                 return NotFound();
             }
-            ViewData["CountryID"] = new SelectList(_context.Countries, "ID", "Name", director.CountryID);
+            ViewData["CountryID"] = new SelectList(_context.Countries, "ID", "Name", director.PlaceOfBirth);
             return View(director);
         }
 
         // POST: Directors/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("ID,FullName,DateOfBirth,Biography,CountryID,ProfileImagePath")] Director director, IFormFile profileImage)
+        public async Task<IActionResult> Edit(int id, [Bind("ID,FullName,DateOfBirth,Biography,PlaceOfBirth,ProfileImagePath")] Director director, IFormFile profileImage)
         {
             if (id != director.ID)
             {
@@ -125,7 +151,6 @@ namespace DKMovies.Controllers
             }
 
             ModelState.Remove(nameof(Director.Movies));
-            ModelState.Remove(nameof(Director.Country));
 
             if (await _context.Directors.AnyAsync(d => d.FullName == director.FullName && d.ID != director.ID))
             {
@@ -181,10 +206,9 @@ namespace DKMovies.Controllers
                 }
             }
 
-            ViewData["CountryID"] = new SelectList(_context.Countries, "ID", "Name", director.CountryID);
+            ViewData["CountryID"] = new SelectList(_context.Countries, "ID", "Name", director.PlaceOfBirth);
             return View(director);
         }
-
 
         // GET: Directors/Delete/5
         public async Task<IActionResult> Delete(int? id)
@@ -195,7 +219,6 @@ namespace DKMovies.Controllers
             }
 
             var director = await _context.Directors
-                .Include(d => d.Country)
                 .FirstOrDefaultAsync(m => m.ID == id);
             if (director == null)
             {
