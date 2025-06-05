@@ -1,0 +1,169 @@
+﻿@model DKMovies.Models.User
+@{
+    ViewData["Title"] = "Profile";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <i class="fas fa-user-circle text-primary me-3 fs-3"></i>
+                        <h3 class="mb-0 fw-bold text-dark">Profile Settings</h3>
+                    </div>
+
+                    <form asp-action="Index" asp-controller="Profile" method="post" enctype="multipart/form-data">
+                        <input type="hidden" asp-for="ID" />
+
+                        <!-- Profile Image Section -->
+                        <div class="text-center mb-4">
+                            <div class="position-relative d-inline-block">
+                                <img id="imagePreview"
+                                     src="~/images/users/@(Model.ProfileImagePath ?? "default.png")"
+                                     class="rounded-circle border border-2 border-light shadow-sm"
+                                     style="width: 120px; height: 120px; object-fit: cover;" />
+                                <label for="profileImageInput"
+                                       class="position-absolute btn btn-primary rounded-circle d-flex align-items-center justify-content-center"
+                                       style="width: 40px; height: 40px; bottom: 5px; right: 5px; cursor: pointer; z-index: 10;">
+                                    📷
+                                </label>
+                            </div>
+                            <input type="file" id="profileImageInput" name="ProfileImage"
+                                   class="d-none" accept="image/*" onchange="previewImage(this)" />
+                            <p class="text-muted small mt-2">Click the camera button to change photo</p>
+                        </div>
+
+                        <!-- Form Fields -->
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium text-dark">Full Name</label>
+                                <input asp-for="FullName" class="form-control form-control-lg"
+                                       placeholder="Enter your full name" />
+                                <span asp-validation-for="FullName" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium text-dark">Username</label>
+                                <input asp-for="Username" class="form-control form-control-lg bg-light"
+                                       readonly />
+                                <span asp-validation-for="Username" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium text-dark">Email</label>
+                                <input asp-for="Email" class="form-control form-control-lg bg-light"
+                                       readonly />
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium text-dark">Phone Number</label>
+                                <input asp-for="Phone" class="form-control form-control-lg"
+                                       placeholder="Enter phone number" />
+                                <span asp-validation-for="Phone" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium text-dark">Birth Date</label>
+                                <input asp-for="BirthDate" type="date" class="form-control form-control-lg" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium text-dark">Gender</label>
+                                <select asp-for="Gender" class="form-select form-select-lg">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-medium text-dark">New Password</label>
+                                <input name="NewPassword" type="password" class="form-control form-control-lg"
+                                       placeholder="Leave blank to keep current password" />
+                                <div class="form-text">Only fill this if you want to change your password</div>
+                            </div>
+
+                            <!-- Two-Factor Authentication -->
+                            <div class="col-12">
+                                <div class="card bg-light border-0 mt-3">
+                                    <div class="card-body p-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input fs-5" type="checkbox"
+                                                   asp-for="TwoFactorEnabled" id="twoFactorSwitch" />
+                                            <label class="form-check-label fw-medium" for="twoFactorSwitch">
+                                                <i class="fas fa-shield-alt text-success me-2"></i>
+                                                Enable Two-Factor Authentication (2FA)
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">
+                                            Add an extra layer of security to your account
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg py-3 fw-medium">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+@if (!string.IsNullOrEmpty(ViewBag.ToastMessage))
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+        <div class="toast show align-items-center text-bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body fw-medium">
+                    <i class="fas fa-check-circle me-2"></i>@ViewBag.ToastMessage
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.ToastError))
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+        <div class="toast show align-items-center text-bg-danger border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body fw-medium">
+                    <i class="fas fa-exclamation-circle me-2"></i>@ViewBag.ToastError
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function previewImage(input) {
+            const file = input.files[0];
+            const preview = document.getElementById("imagePreview");
+
+            if (file && preview) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
+}

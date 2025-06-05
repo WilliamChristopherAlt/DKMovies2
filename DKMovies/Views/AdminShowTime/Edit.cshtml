@@ -1,0 +1,335 @@
+﻿@model DKMovies.Models.ShowTime
+@{
+    ViewData["Title"] = "Chỉnh sửa suất chiếu";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="mb-4">
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">
+                <i class="fas fa-edit me-2 text-warning"></i>Chỉnh sửa suất chiếu
+            </h2>
+            <p class="text-muted mb-0">Cập nhật thông tin suất chiếu</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="card-title mb-0 fw-semibold">
+                    <i class="fas fa-calendar-edit me-2 text-secondary"></i>Cập nhật thông tin suất chiếu
+                </h6>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post" id="editShowTimeForm">
+                    @Html.AntiForgeryToken()
+                    @Html.HiddenFor(model => model.ID)
+
+                    <div class="row g-4">
+                        <!-- Movie Selection -->
+                        <div class="col-md-6">
+                            <label asp-for="MovieID" class="form-label fw-medium">
+                                <i class="fas fa-film text-primary me-2"></i>Chọn phim <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="MovieID" class="form-select" asp-items="ViewBag.MovieID" id="movieSelect">
+                                <option value="">-- Chọn phim --</option>
+                            </select>
+                            <span asp-validation-for="MovieID" class="text-danger small"></span>
+                            <div class="form-text">Thay đổi phim cho suất chiếu này</div>
+                        </div>
+
+                        <!-- Auditorium Selection -->
+                        <div class="col-md-6">
+                            <label asp-for="AuditoriumID" class="form-label fw-medium">
+                                <i class="fas fa-building text-success me-2"></i>Chọn rạp & phòng <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="AuditoriumID" class="form-select" asp-items="ViewBag.AuditoriumID" id="auditoriumSelect">
+                                <option value="">-- Chọn rạp và phòng --</option>
+                            </select>
+                            <span asp-validation-for="AuditoriumID" class="text-danger small"></span>
+                            <div class="form-text">Thay đổi rạp và phòng chiếu</div>
+                        </div>
+
+                        <!-- Start Time -->
+                        <div class="col-md-6">
+                            <label asp-for="StartTime" class="form-label fw-medium">
+                                <i class="fas fa-clock text-warning me-2"></i>Thời gian bắt đầu <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="StartTime" type="datetime-local" class="form-control" id="startTimeInput" />
+                            <span asp-validation-for="StartTime" class="text-danger small"></span>
+                            <div class="form-text">Cập nhật ngày và giờ bắt đầu chiếu phim</div>
+                        </div>
+
+                        <!-- Price -->
+                        <div class="col-md-6">
+                            <label asp-for="Price" class="form-label fw-medium">
+                                <i class="fas fa-money-bill-wave text-info me-2"></i>Giá vé (VND) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="Price" type="number" class="form-control" min="0" step="1000" />
+                                <span class="input-group-text">₫</span>
+                            </div>
+                            <span asp-validation-for="Price" class="text-danger small"></span>
+                            <div class="form-text">Cập nhật giá vé cho suất chiếu này</div>
+                        </div>
+
+                        <!-- Duration Minutes (Hidden) -->
+                        <input asp-for="DurationMinutes" type="hidden" id="durationInput" />
+                    </div>
+
+                    <!-- Current ShowTime Info -->
+                    <div class="mt-4">
+                        <div class="card bg-light border-0">
+                            <div class="card-body">
+                                <h6 class="card-title fw-semibold mb-3">
+                                    <i class="fas fa-info-circle me-2 text-info"></i>Thông tin hiện tại
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="border rounded p-3 text-center">
+                                            <div class="text-muted small">ID Suất chiếu</div>
+                                            <div class="fw-bold text-primary">#@Model.ID</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="border rounded p-3 text-center">
+                                            <div class="text-muted small">Thời lượng</div>
+                                            <div class="fw-bold">@Model.DurationMinutes phút</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="border rounded p-3 text-center">
+                                            <div class="text-muted small">Trạng thái</div>
+                                            @{
+                                                var isUpcoming = Model.StartTime > DateTime.Now;
+                                                var statusText = isUpcoming ? "Sắp chiếu" : "Đã qua";
+                                                var statusClass = isUpcoming ? "text-success" : "text-secondary";
+                                            }
+                                            <div class="fw-bold @statusClass">@statusText</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="border rounded p-3 text-center">
+                                            <div class="text-muted small">Vé đã bán</div>
+                                            <div class="fw-bold text-info">@(Model.Tickets?.Count() ?? 0)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Warning for Past ShowTimes -->
+                    @if (Model.StartTime <= DateTime.Now)
+                    {
+                        <div class="alert alert-warning mt-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle me-3 fs-4"></i>
+                                <div>
+                                    <h6 class="alert-heading mb-1">Cảnh báo: Suất chiếu đã qua</h6>
+                                    <p class="mb-0 small">
+                                        Suất chiếu này đã bắt đầu hoặc kết thúc. Việc chỉnh sửa có thể ảnh hưởng đến khách hàng đã mua vé.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Submit Buttons -->
+                    <div class="row mt-5">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between">
+                                <a asp-action="Index" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-2"></i>Hủy
+                                </a>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-warning" onclick="previewChanges()">
+                                        <i class="fas fa-eye me-2"></i>Xem trước thay đổi
+                                    </button>
+                                    <button type="submit" class="btn btn-warning" id="submitBtn">
+                                        <i class="fas fa-save me-2"></i>Cập nhật suất chiếu
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Changes Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2 text-warning"></i>Xem trước thay đổi
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-12">
+                        <h6 class="fw-bold mb-3">So sánh thay đổi:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-borderless">
+                                <thead>
+                                    <tr>
+                                        <th>Thông tin</th>
+                                        <th class="text-muted">Trước</th>
+                                        <th class="text-primary">Sau</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="fw-medium">Phim</td>
+                                        <td class="text-muted" id="oldMovie">@Model.Movie?.Title</td>
+                                        <td class="text-primary" id="newMovie"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-medium">Rạp & Phòng</td>
+                                        <td class="text-muted" id="oldAuditorium">@Model.Auditorium?.Theater?.Name - Phòng @Model.Auditorium?.Name</td>
+                                        <td class="text-primary" id="newAuditorium"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-medium">Thời gian</td>
+                                        <td class="text-muted" id="oldTime">@Model.StartTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td class="text-primary" id="newTime"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-medium">Giá vé</td>
+                                        <td class="text-muted" id="oldPrice">@String.Format("{0:N0} ₫", Model.Price)</td>
+                                        <td class="text-primary" id="newPrice"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-warning" onclick="submitForm()">
+                    <i class="fas fa-save me-2"></i>Xác nhận cập nhật
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function() {
+            // Convert current datetime to local format for input
+            const currentDateTime = new Date('@Model.StartTime.ToString("yyyy-MM-ddTHH:mm")');
+            document.getElementById('startTimeInput').value = currentDateTime.toISOString().slice(0, 16);
+
+            // Set minimum datetime to current time (but allow past times for editing)
+            // const now = new Date();
+            // now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            // document.getElementById('startTimeInput').min = now.toISOString().slice(0, 16);
+
+            // Form validation
+            $('#editShowTimeForm').submit(function(e) {
+                if (!validateForm()) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // Show loading state
+                $('#submitBtn').html('<i class="fas fa-spinner fa-spin me-2"></i>Đang cập nhật...');
+                $('#submitBtn').prop('disabled', true);
+            });
+
+            // Real-time price formatting
+            $('input[name="Price"]').on('input', function() {
+                const value = $(this).val();
+                if (value) {
+                    const formatted = parseInt(value).toLocaleString('vi-VN');
+                    $(this).next('.input-group-text').text(formatted + ' ₫');
+                }
+            });
+
+            // Initialize price display
+            const currentPrice = $('input[name="Price"]').val();
+            if (currentPrice) {
+                const formatted = parseInt(currentPrice).toLocaleString('vi-VN');
+                $('input[name="Price"]').next('.input-group-text').text(formatted + ' ₫');
+            }
+        });
+
+        function validateForm() {
+            let isValid = true;
+            const requiredFields = ['MovieID', 'AuditoriumID', 'StartTime', 'Price'];
+
+            requiredFields.forEach(field => {
+                const element = $(`[name="${field}"]`);
+                if (!element.val()) {
+                    element.addClass('is-invalid');
+                    isValid = false;
+                } else {
+                    element.removeClass('is-invalid');
+                }
+            });
+
+            return isValid;
+        }
+
+        function previewChanges() {
+            if (!validateForm()) {
+                return;
+            }
+
+            // Populate preview modal with new values
+            const newMovie = $('#movieSelect option:selected').text();
+            const newAuditorium = $('#auditoriumSelect option:selected').text();
+            const newTime = new Date($('#startTimeInput').val()).toLocaleString('vi-VN');
+            const newPrice = parseInt($('#Price').val()).toLocaleString('vi-VN') + ' ₫';
+
+            $('#newMovie').text(newMovie);
+            $('#newAuditorium').text(newAuditorium);
+            $('#newTime').text(newTime);
+            $('#newPrice').text(newPrice);
+
+            new bootstrap.Modal(document.getElementById('previewModal')).show();
+        }
+
+        function submitForm() {
+            $('#previewModal .btn-close').click();
+            $('#editShowTimeForm').submit();
+        }
+    </script>
+}
+
+<style>
+    .table tbody tr td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .alert {
+        border-left: 4px solid #ffc107;
+    }
+
+    .card.bg-light .border {
+        background: white;
+        transition: all 0.2s ease;
+    }
+
+        .card.bg-light .border:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+</style>

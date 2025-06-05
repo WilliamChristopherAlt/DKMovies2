@@ -1,0 +1,630 @@
+﻿@using DKMovies.Models.ViewModels
+@model ShowTimeIndexViewModel
+@{
+    ViewData["Title"] = "Showtime Management";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<!-- Loading Screen -->
+<div id="loadingScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 9999; display: flex; justify-content: center; align-items: center;">
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-muted">Loading Showtime Management...</p>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div id="mainContent" style="display: none;">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-gradient-primary text-white shadow-sm">
+                <div class="card-body py-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-1 fw-bold">
+                                <i class="fas fa-clock me-2"></i>Showtime Management
+                            </h2>
+                            <p class="mb-0 opacity-90">Manage movie schedules and showtimes</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-light btn-sm" onclick="location.reload()">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                            <a asp-action="Create" class="btn btn-warning">
+                                <i class="fas fa-plus me-2"></i>Add New Showtime
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-0 bg-success text-white shadow-sm stats-card">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-clock fa-2x mb-2"></i>
+                    <h4 class="mb-1">@Model.Statistics.Upcoming</h4>
+                    <small>Upcoming</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-0 bg-danger text-white shadow-sm stats-card">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-play fa-2x mb-2"></i>
+                    <h4 class="mb-1">@Model.Statistics.Showing</h4>
+                    <small>Now Showing</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-0 bg-secondary text-white shadow-sm stats-card">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-check fa-2x mb-2"></i>
+                    <h4 class="mb-1">@Model.Statistics.Past</h4>
+                    <small>Finished</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card border-0 bg-primary text-white shadow-sm stats-card">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-film fa-2x mb-2"></i>
+                    <h4 class="mb-1">@Model.Statistics.Total</h4>
+                    <small>Total</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.ShowTimes.Any())
+    {
+        <!-- Empty State -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-calendar-times text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || Model.FilterType != "all")
+                        {
+                            <h4 class="text-muted mb-3">No Showtimes Found</h4>
+                            <p class="text-muted mb-4">
+                                No showtimes match your search criteria. Try adjusting your filters or search term.
+                            </p>
+                            <div class="d-flex gap-2 justify-content-center">
+                                <a asp-action="Index" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-2"></i>Clear Filters
+                                </a>
+                                <a asp-action="Create" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Add New Showtime
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            <h4 class="text-muted mb-3">No Showtimes Available</h4>
+                            <p class="text-muted mb-4">Create your first showtime so customers can book movie tickets.</p>
+                            <a asp-action="Create" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Create First Showtime
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Filter and Search Section -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <form method="get" id="filterForm">
+                    <input type="hidden" name="page" value="1" id="pageInput" />
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <h5 class="mb-0 text-dark">
+                            <i class="fas fa-list me-2 text-primary"></i>
+                            Showtime Schedule
+                            <span class="badge bg-primary ms-2">@Model.TotalShowtimes</span>
+                        </h5>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-filter me-1"></i>
+                                    @(Model.FilterType == "all" ? "All Showtimes" :
+                                        Model.FilterType == "showing" ? "Now Showing" :
+                                        Model.FilterType == "upcoming" ? "Upcoming" : "Past")
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item @(Model.FilterType == "all" ? "active" : "")"
+                                           href="javascript:void(0)" onclick="setFilter('all')">All Showtimes</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item @(Model.FilterType == "showing" ? "active" : "")"
+                                           href="javascript:void(0)" onclick="setFilter('showing')">Now Showing</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item @(Model.FilterType == "upcoming" ? "active" : "")"
+                                           href="javascript:void(0)" onclick="setFilter('upcoming')">Upcoming</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item @(Model.FilterType == "past" ? "active" : "")"
+                                           href="javascript:void(0)" onclick="setFilter('past')">Past</a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="input-group" style="width: 250px;">
+                                <input type="text" name="search" class="form-control"
+                                       placeholder="Search showtimes..." value="@Model.SearchTerm" id="searchInput">
+                                <button class="btn btn-outline-secondary" type="submit">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" name="filter" value="@Model.FilterType" id="filterInput" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Info -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        Showing showtimes
+                        @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+                        {
+                            <span> for "@Model.SearchTerm"</span>
+                        }
+                    </small>
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || Model.FilterType != "all")
+                    {
+                        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Clear Filters
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Showtimes Grid -->
+        <div class="row" id="showtimesContainer">
+            @foreach (var showTime in Model.ShowTimes)
+            {
+                var isNow = showTime.StartTime <= DateTime.Now && showTime.StartTime.AddMinutes(showTime.DurationMinutes) > DateTime.Now;
+                var isPast = showTime.StartTime.AddMinutes(showTime.DurationMinutes) < DateTime.Now;
+
+                var statusText = isNow ? "Now Showing" : (isPast ? "Finished" : "Upcoming");
+                var statusBadge = isNow ? "bg-danger" : (isPast ? "bg-secondary" : "bg-success");
+                var cardOpacity = isPast ? "opacity-75" : "";
+
+                <div class="col-12 mb-4 showtime-item">
+                    <div class="card border-0 shadow-sm showtime-card h-100 @cardOpacity" onclick="goToEdit(@showTime.ID)" style="cursor: pointer;">
+                        <!-- Delete Button -->
+                        <button type="button" class="btn btn-danger btn-sm position-absolute delete-btn"
+                                style="top: 10px; right: 10px; z-index: 10; border-radius: 50%; width: 35px; height: 35px; padding: 0;"
+                                onclick="event.stopPropagation(); confirmDelete(@showTime.ID, '@showTime.Movie?.Title', '@showTime.StartTime.ToString("MM/dd/yyyy HH:mm")')"
+                                data-bs-toggle="tooltip" title="Delete Showtime">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+
+                        <div class="card-body p-3">
+                            <div class="row g-3">
+                                <!-- Movie Poster -->
+                                <div class="col-md-2 col-sm-3">
+                                    <div class="poster-container">
+                                        @{
+                                            var posterPath = string.IsNullOrWhiteSpace(showTime.Movie?.PosterImagePath)
+                                            ? "default-poster.jpg"
+                                            : showTime.Movie.PosterImagePath.TrimStart('/');
+                                            var fullPosterPath = Url.Content($"~/images/movie_posters/{posterPath}");
+                                        }
+                                        <img src="@fullPosterPath"
+                                             alt="@showTime.Movie?.Title"
+                                             class="img-fluid movie-poster"
+                                             onerror="this.onerror=null; this.src='@Url.Content("~/images/movie_posters/default-poster.jpg")'" />
+                                    </div>
+                                </div>
+
+                                <!-- Showtime Details -->
+                                <div class="col-md-10 col-sm-9">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h5 class="card-title mb-1 fw-bold text-dark">@showTime.Movie?.Title</h5>
+                                            <p class="text-muted mb-2">
+                                                <i class="fas fa-building me-1"></i>@showTime.Auditorium?.Theater?.Name
+                                                <span class="mx-2">•</span>
+                                                <i class="fas fa-door-open me-1"></i>Hall @showTime.Auditorium?.Name
+                                            </p>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge @statusBadge px-2 py-1 mb-2">@statusText</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Showtime Info Row -->
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-auto">
+                                            <span class="badge bg-primary text-white">
+                                                <i class="fas fa-calendar me-1"></i>@showTime.StartTime.ToString("MMM dd, yyyy")
+                                            </span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <span class="badge bg-info text-white">
+                                                <i class="fas fa-clock me-1"></i>@showTime.StartTime.ToString("HH:mm")
+                                            </span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <span class="badge bg-success text-white">
+                                                <i class="fas fa-dollar-sign me-1"></i>@String.Format("{0:N2}", showTime.Price)
+                                            </span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-hourglass-half me-1"></i>@showTime.DurationMinutes min
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Additional Info -->
+                                    <div class="mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-auto">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-play me-1"></i>
+                                                    Starts: @showTime.StartTime.ToString("HH:mm")
+                                                </small>
+                                            </div>
+                                            <div class="col-auto">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-stop me-1"></i>
+                                                    Ends: @showTime.StartTime.AddMinutes(showTime.DurationMinutes).ToString("HH:mm")
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="row mb-4">
+                <div class="col-12">
+                    <nav aria-label="Showtime pagination">
+                        <ul class="pagination justify-content-center mb-0">
+                            <!-- First Page -->
+                            @if (Model.CurrentPage > 3)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-page="1" asp-route-search="@Model.SearchTerm" asp-route-filter="@Model.FilterType">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Previous Page -->
+                            @if (Model.HasPreviousPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.CurrentPage - 1)" asp-route-search="@Model.SearchTerm" asp-route-filter="@Model.FilterType">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Page Numbers -->
+                            @{
+                                var startPage = Math.Max(1, Model.CurrentPage - 2);
+                                var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+                            }
+
+                            @for (int i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-search="@Model.SearchTerm" asp-route-filter="@Model.FilterType">@i</a>
+                                </li>
+                            }
+
+                            <!-- Next Page -->
+                            @if (Model.HasNextPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.CurrentPage + 1)" asp-route-search="@Model.SearchTerm" asp-route-filter="@Model.FilterType">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Last Page -->
+                            @if (Model.CurrentPage < Model.TotalPages - 2)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-page="@Model.TotalPages" asp-route-search="@Model.SearchTerm" asp-route-filter="@Model.FilterType">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Pagination Info -->
+            <div class="row mb-3">
+                <div class="col-12 text-center">
+                    <small class="text-muted">
+                        Page @Model.CurrentPage of @Model.TotalPages
+                    </small>
+                </div>
+            </div>
+        }
+
+        <!-- Footer Actions -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card border-0 bg-light">
+                    <div class="card-body py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Total: @Model.TotalShowtimes showtimes</strong>
+                                <span class="text-muted ms-2">scheduled</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a asp-controller="AdminMovie" asp-action="Index" class="btn btn-outline-primary">
+                                    <i class="fas fa-film me-1"></i>Manage Movies
+                                </a>
+                                <a asp-action="Create" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i>Add New Showtime
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-danger me-2"></i>Confirm Deletion
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Are you sure you want to delete this showtime?</p>
+                <div class="alert alert-danger">
+                    <div><strong>Movie:</strong> <span id="movieTitleToDelete"></span></div>
+                    <div><strong>Time:</strong> <span id="showTimeToDelete"></span></div>
+                </div>
+                <p class="text-muted small mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    This action cannot be undone. All related bookings will be affected.
+                </p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-1"></i>Delete Showtime
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Hide loading screen
+            setTimeout(function() {
+                $('#loadingScreen').fadeOut(300, function() {
+                    $('#mainContent').fadeIn(300);
+                });
+            }, 500);
+
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Add hover effects
+            $('.showtime-card').hover(
+                function() {
+                    $(this).addClass('shadow-lg').css('transform', 'translateY(-2px)');
+                },
+                function() {
+                    $(this).removeClass('shadow-lg').css('transform', 'none');
+                }
+            );
+
+            // Stats card hover effects
+            $('.stats-card').hover(
+                function() {
+                    $(this).css('transform', 'scale(1.05)');
+                },
+                function() {
+                    $(this).css('transform', 'none');
+                }
+            );
+
+            // Auto-submit search form on Enter
+            $('#searchInput').on('keypress', function(e) {
+                if (e.which === 13) {
+                    $('#pageInput').val(1); // Reset to first page on search
+                    $('#filterForm').submit();
+                }
+            });
+        });
+
+        // Navigate to edit
+        function goToEdit(showtimeId) {
+            window.location.href = '/AdminShowTime/Edit/' + showtimeId;
+        }
+
+        // Delete confirmation function
+        function confirmDelete(showTimeId, movieTitle, showTime) {
+            $('#movieTitleToDelete').text(movieTitle);
+            $('#showTimeToDelete').text(showTime);
+            $('#deleteForm').attr('action', '/AdminShowTime/Delete/' + showTimeId);
+            new bootstrap.Modal($('#deleteModal')).show();
+        }
+
+        // Filter function
+        function setFilter(filterType) {
+            $('#filterInput').val(filterType);
+            $('#pageInput').val(1); // Reset to first page on filter change
+            $('#filterForm').submit();
+        }
+    </script>
+}
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .showtime-card {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .showtime-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+        }
+
+    .stats-card {
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+
+        .stats-card:hover {
+            transform: scale(1.05);
+        }
+
+    .poster-container {
+        position: relative;
+        width: 100%;
+        max-width: 120px;
+    }
+
+    .movie-poster {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+
+        .movie-poster:hover {
+            transform: scale(1.05);
+        }
+
+    .delete-btn {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .showtime-card:hover .delete-btn {
+        opacity: 1;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .card-title {
+        color: #2c3e50;
+    }
+
+    .pagination .page-link {
+        color: #667eea;
+        border-color: #dee2e6;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #667eea;
+        border-color: #667eea;
+    }
+
+    .pagination .page-link:hover {
+        color: #764ba2;
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+    }
+
+    @@media (max-width: 768px) {
+        .poster-container
+
+    {
+        max-width: 80px;
+    }
+
+    .movie-poster {
+        height: 120px;
+    }
+
+    .delete-btn {
+        opacity: 1;
+        width: 30px;
+        height: 30px;
+        top: 5px;
+        right: 5px;
+    }
+
+    .pagination {
+        font-size: 0.875rem;
+    }
+
+        .pagination .page-link {
+            padding: 0.375rem 0.5rem;
+        }
+
+    }
+
+    @@media (max-width: 576px) {
+        .d-flex.gap-2
+
+    {
+        flex-direction: column;
+        gap: 0.5rem !important;
+    }
+
+    .input-group {
+        width: 100% !important;
+    }
+
+    .pagination {
+        justify-content: center !important;
+        flex-wrap: wrap;
+    }
+
+    }
+</style>

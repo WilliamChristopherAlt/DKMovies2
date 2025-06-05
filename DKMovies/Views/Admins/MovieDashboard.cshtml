@@ -1,0 +1,585 @@
+﻿@model DKMovies.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Bảng điều khiển quản trị";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<style>
+    .admin-content {
+        margin-left: 280px !important;
+        padding-top: 80px !important;
+    }
+
+        .admin-content.sidebar-collapsed {
+            margin-left: 70px !important;
+        }
+
+    .top-movies-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        color: white;
+    }
+
+    .movie-rank-item {
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+        .movie-rank-item:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+    .rank-badge {
+        background: linear-gradient(45deg, #ffd700, #ffed4e);
+        color: #333;
+        font-weight: bold;
+        border-radius: 50%;
+        width: 35px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .auto-manage-btn {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        border: none;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+    }
+
+        .auto-manage-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+        }
+
+    .refresh-indicator {
+        animation: pulse 2s infinite;
+    }
+
+    {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+
+    }
+
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 10px;
+    }
+</style>
+
+<!-- Dashboard Content -->
+<div class="mb-4">
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <h1 class="h3 mb-1 fw-bold text-dark">Tổng quan hệ thống</h1>
+            <p class="text-muted mb-0">Quản lý và theo dõi hoạt động DKMovies</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt me-1" id="refresh-icon"></i>Làm mới
+            </button>
+            <button class="auto-manage-btn btn-sm" onclick="triggerAutoManagement()">
+                <i class="fas fa-magic me-1"></i>Tự động quản lý
+            </button>
+        </div>
+    </div>
+</div>
+
+@if (ViewBag.ErrorMessage != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        @ViewBag.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Dashboard Statistics Cards -->
+<div class="row g-4 mb-4">
+    <!-- Users Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 overflow-hidden position-relative dashboard-card">
+            <div class="card-body text-white p-4 position-relative" style="background: linear-gradient(135deg, #17a2b8, #0d6efd);">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="text-uppercase small opacity-75 mb-2">Người dùng</div>
+                        <div class="h4 mb-0 fw-bold">@(ViewBag.TotalUsers ?? 0)</div>
+                    </div>
+                    <div class="bg-white bg-opacity-25 rounded-circle p-2">
+                        <i class="fas fa-users fs-5"></i>
+                    </div>
+                </div>
+                <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-white opacity-50" style="width: 75%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movies Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 overflow-hidden position-relative dashboard-card">
+            <div class="card-body text-white p-4 position-relative" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="text-uppercase small opacity-75 mb-2">Phim</div>
+                        <div class="h4 mb-0 fw-bold">@(ViewBag.TotalMovies ?? 0)</div>
+                    </div>
+                    <div class="bg-white bg-opacity-25 rounded-circle p-2">
+                        <i class="fas fa-film fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ShowTimes Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 overflow-hidden position-relative dashboard-card">
+            <div class="card-body text-white p-4 position-relative" style="background: linear-gradient(135deg, #dc3545, #e83e8c);">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="text-uppercase small opacity-75 mb-2">Suất chiếu</div>
+                        <div class="h4 mb-0 fw-bold">@(ViewBag.TotalShowTimes ?? 0)</div>
+                    </div>
+                    <div class="bg-white bg-opacity-25 rounded-circle p-2">
+                        <i class="fas fa-clock fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100 overflow-hidden position-relative dashboard-card">
+            <div class="card-body text-white p-4 position-relative" style="background: linear-gradient(135deg, #343a40, #495057);">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="text-uppercase small opacity-75 mb-2">Tổng doanh thu</div>
+                        <div class="h4 mb-0 fw-bold">@String.Format("{0:N0} ₫", ViewBag.TotalRevenue ?? 0)</div>
+                    </div>
+                    <div class="bg-white bg-opacity-25 rounded-circle p-2">
+                        <i class="fas fa-chart-line fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Movies Performance Section -->
+<div class="row g-4 mb-4">
+    <!-- Top 5 Movies Real-time Chart -->
+    <div class="col-xl-8">
+        <div class="card border-0 shadow-sm top-movies-card">
+            <div class="card-header border-0 text-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="card-title mb-0 fw-semibold">
+                        <i class="fas fa-trophy me-2"></i>Top 5 Phim Doanh Thu Cao Nhất
+                    </h6>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-success status-badge me-2" id="refresh-status">
+                            <i class="fas fa-circle refresh-indicator"></i> Live
+                        </span>
+                        <small class="opacity-75" id="last-update">Đang tải...</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4" id="top-movies-content">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-light" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                    <div class="mt-2">Đang tải dữ liệu phim...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto Management Control Panel -->
+    <div class="col-xl-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom-0 py-3">
+                <h6 class="card-title mb-0 fw-semibold">
+                    <i class="fas fa-cogs text-primary me-2"></i>Quản Lý Tự Động
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-medium">Trạng thái tự động:</span>
+                        <span class="badge bg-success" id="auto-status">Đang hoạt động</span>
+                    </div>
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-gradient" role="progressbar" style="width: 85%"></div>
+                    </div>
+                    <small class="text-muted">Reset mỗi tuần vào Chủ nhật</small>
+                </div>
+
+                <div class="mb-3">
+                    <button class="btn btn-outline-primary w-100 mb-2" onclick="triggerAutoManagement()">
+                        <i class="fas fa-play me-2"></i>Chạy ngay
+                    </button>
+                    <button class="btn btn-outline-secondary w-100" onclick="viewAutoLog()">
+                        <i class="fas fa-history me-2"></i>Xem lịch sử
+                    </button>
+                </div>
+
+                <div class="border-top pt-3">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="fw-bold text-success" id="added-count">0</div>
+                            <small class="text-muted">Đã thêm</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="fw-bold text-danger" id="removed-count">0</div>
+                            <small class="text-muted">Đã xóa</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Management Log Modal -->
+<div class="modal fade" id="autoLogModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-history me-2"></i>Lịch Sử Quản Lý Tự Động
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="auto-log-content">
+                <div class="text-center py-3">
+                    <div class="spinner-border" role="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Toast -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="autoToast" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="fas fa-robot me-2 text-primary"></i>
+            <strong class="me-auto">Quản Lý Tự Động</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toast-message">
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let refreshInterval;
+        let autoManagementInterval;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            startAutoRefresh();
+
+            // Start auto management check every hour
+            autoManagementInterval = setInterval(checkAutoManagement, 3600000);
+        });
+
+        function initializeDashboard() {
+            loadTopMovies();
+            addClickEventsToCards();
+        }
+
+        function startAutoRefresh() {
+            // Refresh top movies every 5 minutes
+            refreshInterval = setInterval(loadTopMovies, 300000);
+        }
+
+        function loadTopMovies() {
+            fetch('/Admins/GetTop5MoviesRealTime')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderTopMovies(data.data);
+                        document.getElementById('last-update').textContent =
+                            `Cập nhật: ${data.lastUpdated}`;
+                    } else {
+                        showError('Không thể tải dữ liệu phim');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Lỗi kết nối');
+                });
+        }
+
+        function renderTopMovies(movies) {
+            const container = document.getElementById('top-movies-content');
+
+            if (!movies || movies.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-white-50">
+                        <i class="fas fa-film fa-3x mb-3"></i>
+                        <div>Chưa có dữ liệu phim</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const moviesHtml = movies.map(movie => `
+                <div class="movie-rank-item p-3 mb-3">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <div class="rank-badge">${movie.rank}</div>
+                        </div>
+                        <div class="col">
+                            <div class="fw-bold mb-1">${movie.title}</div>
+                            <div class="small opacity-75">
+                                <i class="fas fa-ticket-alt me-1"></i>
+                                ${movie.ticketsSold} vé • ${movie.revenueFormatted}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-sm btn-outline-light"
+                                    onclick="viewMovieDetails(${movie.movieId})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = moviesHtml;
+        }
+
+        function triggerAutoManagement() {
+            const btn = event.target.closest('button');
+            const originalHtml = btn.innerHTML;
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
+            btn.disabled = true;
+
+            fetch('/Admins/AutoManageShowtimes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess(`Hoàn thành! Thêm: ${data.addedCount}, Xóa: ${data.removedCount}`);
+                    updateCounters(data.addedCount, data.removedCount);
+
+                    // Refresh dashboard after auto management
+                    setTimeout(() => {
+                        loadTopMovies();
+                        refreshDashboardStats();
+                    }, 1000);
+                } else {
+                    showError(data.error || 'Có lỗi xảy ra');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Lỗi kết nối');
+            })
+            .finally(() => {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            });
+        }
+
+        function checkAutoManagement() {
+            // Check if it's Sunday (weekly reset)
+            const now = new Date();
+            if (now.getDay() === 0 && now.getHours() === 2) { // Sunday 2 AM
+                triggerAutoManagement();
+            }
+        }
+
+        function updateCounters(added, removed) {
+            document.getElementById('added-count').textContent = added;
+            document.getElementById('removed-count').textContent = removed;
+        }
+
+        function viewAutoLog() {
+            const modal = new bootstrap.Modal(document.getElementById('autoLogModal'));
+            const content = document.getElementById('auto-log-content');
+
+            content.innerHTML = `
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-success"></div>
+                        <div class="timeline-content">
+                            <h6>Quản lý tự động - ${new Date().toLocaleString()}</h6>
+                            <p class="text-muted">Thêm 3 suất chiếu cho "Avatar 3", xóa 2 suất chiếu "Movie X"</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-info"></div>
+                        <div class="timeline-content">
+                            <h6>Reset tuần - ${new Date(Date.now() - 7*24*60*60*1000).toLocaleString()}</h6>
+                            <p class="text-muted">Reset dữ liệu phân tích, bắt đầu chu kỳ mới</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.show();
+        }
+
+        function viewMovieDetails(movieId) {
+            window.open(`/AdminMovie/Details/${movieId}`, '_blank');
+        }
+
+        function refreshDashboard() {
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('fa-spin');
+
+            loadTopMovies();
+            refreshDashboardStats();
+
+            setTimeout(() => {
+                icon.classList.remove('fa-spin');
+                showSuccess('Dashboard đã được cập nhật');
+            }, 1000);
+        }
+
+        function refreshDashboardStats() {
+            // Refresh main dashboard stats
+            fetch('/Admins/GetDashboardStats')
+                .then(response => response.json())
+                .then(data => {
+                    // Update stats if API exists
+                    console.log('Dashboard stats updated');
+                })
+                .catch(error => console.error('Stats refresh error:', error));
+        }
+
+        function addClickEventsToCards() {
+            document.querySelectorAll('.dashboard-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    if (e.target.tagName !== 'A') {
+                        const link = this.querySelector('a');
+                        if (link) {
+                            window.location.href = link.href;
+                        }
+                    }
+                });
+            });
+        }
+
+        function showSuccess(message) {
+            showToast(message, 'success');
+        }
+
+        function showError(message) {
+            showToast(message, 'error');
+        }
+
+        function showToast(message, type) {
+            const toast = document.getElementById('autoToast');
+            const messageEl = document.getElementById('toast-message');
+            const header = toast.querySelector('.toast-header');
+
+            messageEl.textContent = message;
+            header.className = `toast-header ${type === 'success' ? 'bg-success text-white' : 'bg-danger text-white'}`;
+
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+
+        // Cleanup intervals when page unloads
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            if (autoManagementInterval) clearInterval(autoManagementInterval);
+        });
+    </script>
+
+    <style>
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -30px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 3px solid white;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 6px;
+            bottom: 6px;
+            width: 2px;
+            background: #dee2e6;
+        }
+
+        .btn-loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+    </style>
+}
+
+@if (Model.HasMovieData)
+{
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Top 5 Phim Doanh Thu Cao Nhất</h5>
+                </div>
+                <div class="card-body">
+                    @foreach (var movie in Model.TopMovies.Take(5))
+                    {
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div>
+                                <strong>@movie.Title</strong>
+                                <small class="text-muted d-block">Điểm ưu tiên: @movie.PriorityScore.ToString("F1")</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-success fw-bold">@movie.TotalRevenue.ToString("N0") ₫</div>
+                                <small class="text-muted">@movie.TicketsSold vé</small>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}

@@ -1,47 +1,166 @@
-@model IEnumerable<DKMovies.Models.Admin>
-
+﻿@model DKMovies.Models.ViewModels.DashboardViewModel
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<h1>Index</h1>
+<div class="container-fluid px-4">
+    <div class="d-flex align-items-center mb-4">
+        <i class="fas fa-tachometer-alt text-primary me-3 fs-3"></i>
+        <h2 class="mb-0 fw-bold text-dark">Dashboard</h2>
+    </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Employee)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Username)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Employee.Email)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Username)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.ID">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.ID">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.ID">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+    <!-- Dashboard Cards Row 1 -->
+    <div class="row g-4 mb-5">
+        <!-- Users -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 overflow-hidden position-relative">
+                <div class="card-body bg-gradient bg-info text-white p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="text-uppercase small opacity-75 mb-2">Users</div>
+                            <div class="h4 mb-0 fw-bold">@ViewBag.TotalUsers</div>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-2">
+                            <i class="fas fa-users fs-5"></i>
+                        </div>
+                    </div>
+                </div>
+                <a href="@Url.Action("Index", "AdminUser")"
+                   class="card-footer bg-white border-0 text-info text-decoration-none py-3">
+                    <div class="d-flex justify-content-between align-items-center small fw-medium">
+                        <span>View Details</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Employees -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 overflow-hidden position-relative">
+                <div class="card-body bg-gradient bg-success text-white p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="text-uppercase small opacity-75 mb-2">Employees</div>
+                            <div class="h4 mb-0 fw-bold">@ViewBag.TotalEmployees</div>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-2">
+                            <i class="fas fa-user-tie fs-5"></i>
+                        </div>
+                    </div>
+                </div>
+                <a href="@Url.Action("Index", "AdminEmployee")"
+                   class="card-footer bg-white border-0 text-success text-decoration-none py-3">
+                    <div class="d-flex justify-content-between align-items-center small fw-medium">
+                        <span>Manage Employees</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Movies -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 overflow-hidden position-relative">
+                <div class="card-body bg-gradient bg-warning text-white p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="text-uppercase small opacity-75 mb-2">Movies</div>
+                            <div class="h4 mb-0 fw-bold">@ViewBag.TotalMovies</div>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-2">
+                            <i class="fas fa-film fs-5"></i>
+                        </div>
+                    </div>
+                </div>
+                <a href="@Url.Action("Index", "AdminMovie")"
+                   class="card-footer bg-white border-0 text-warning text-decoration-none py-3">
+                    <div class="d-flex justify-content-between align-items-center small fw-medium">
+                        <span>Manage Movies</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Showtimes -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 overflow-hidden position-relative">
+                <div class="card-body bg-gradient bg-danger text-white p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="text-uppercase small opacity-75 mb-2">Showtimes</div>
+                            <div class="h4 mb-0 fw-bold">@ViewBag.TotalShowTimes</div>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-2">
+                            <i class="fas fa-clock fs-5"></i>
+                        </div>
+                    </div>
+                </div>
+                <a href="@Url.Action("Index", "AdminShowTime")"
+                   class="card-footer bg-white border-0 text-danger text-decoration-none py-3">
+                    <div class="d-flex justify-content-between align-items-center small fw-medium">
+                        <span>Manage Showtimes</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Cards Row 2 -->
+    <div class="row g-4">
+        <!-- Concessions -->
+        <div class="col-xl-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100 overflow-hidden position-relative">
+                <div class="card-body bg-gradient bg-secondary text-white p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="text-uppercase small opacity-75 mb-2">Concessions</div>
+                            <div class="h4 mb-0 fw-bold">@ViewBag.TotalConcessions</div>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-2">
+                            <i class="fas fa-utensils fs-5"></i>
+                        </div>
+                    </div>
+                </div>
+                <a href="@Url.Action("Index", "AdminConcession")"
+                   class="card-footer bg-white border-0 text-secondary text-decoration-none py-3">
+                    <div class="d-flex justify-content-between align-items-center small fw-medium">
+                        <span>Manage Concessions</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Revenue -->
+        <div class="col-xl-8 col-md-6">
+            <div class="card border-0 shadow-sm h-100 overflow-hidden position-relative">
+                <div class="card-body bg-gradient bg-dark text-white p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="flex-grow-1">
+                            <div class="text-uppercase small opacity-75 mb-2">Total Revenue (All Sources)</div>
+                            <div class="h3 mb-1 fw-bold">@String.Format("${0:N2}", ViewBag.TotalRevenue)</div>
+                            <div class="text-white-50 small">
+                                <i class="fas fa-ticket-alt me-1"></i> Tickets: <strong>@String.Format("${0:N2}", ViewBag.TicketRevenue)</strong><br />
+                                <i class="fas fa-hamburger me-1"></i> Concessions: <strong>@String.Format("${0:N2}", ViewBag.ConcessionRevenue)</strong>
+                            </div>
+                        </div>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="fas fa-chart-line fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+                <a href="@Url.Action("MovieDashboard", "Admins")"
+                   class="card-footer bg-white border-0 text-dark text-decoration-none py-3">
+                    <div class="d-flex justify-content-between align-items-center small fw-medium">
+                        <span>View Movie Analytics</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

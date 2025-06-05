@@ -1,91 +1,559 @@
 ﻿<!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - DKMovies Admin</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
-    <link rel="stylesheet" href="~/css/admin.css" />
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- DataTables Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --sidebar-collapsed-width: 70px;
+            --header-height: 60px;
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --dark-color: #212529;
+            --sidebar-bg: #1a1d29;
+            --sidebar-hover: #2c3142;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        /* Header Styles */
+        .admin-header {
+            background: linear-gradient(135deg, var(--dark-color), #343a40);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: var(--header-height);
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            z-index: 1030;
+            transition: all 0.3s ease;
+        }
+
+            .admin-header.sidebar-open {
+                left: var(--sidebar-width);
+            }
+
+            .admin-header.sidebar-collapsed {
+                left: var(--sidebar-collapsed-width);
+            }
+
+        /* Sidebar Styles */
+        .admin-sidebar {
+            background: var(--sidebar-bg);
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1040;
+            transform: translateX(0);
+            transition: all 0.3s ease;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+            .admin-sidebar.collapsed {
+                width: var(--sidebar-collapsed-width);
+                transform: translateX(0);
+            }
+
+                .admin-sidebar.collapsed .nav-text,
+                .admin-sidebar.collapsed .sidebar-brand-text,
+                .admin-sidebar.collapsed .sidebar-footer-text {
+                    opacity: 0;
+                    display: none;
+                }
+
+        .sidebar-brand {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-brand-icon {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-right: 0.75rem;
+        }
+
+        .sidebar-brand-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-section-title {
+            color: #8e8e93;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 1rem 1.5rem 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-link {
+            color: #b8bcc8;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+            .nav-link:hover {
+                background: var(--sidebar-hover);
+                color: white;
+                border-left-color: var(--primary-color);
+            }
+
+            .nav-link.active {
+                background: var(--sidebar-hover);
+                color: white;
+                border-left-color: var(--primary-color);
+            }
+
+        .nav-icon {
+            width: 20px;
+            margin-right: 0.75rem;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .nav-text {
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem 1.5rem;
+            background: rgba(0,0,0,0.3);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-footer-text {
+            color: #8e8e93;
+            font-size: 0.875rem;
+        }
+
+        /* Main Content */
+        .admin-content {
+            margin-left: var(--sidebar-width);
+            padding-top: calc(var(--header-height) + 1rem);
+            min-height: 100vh;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+            .admin-content.sidebar-collapsed {
+                margin-left: var(--sidebar-collapsed-width);
+            }
+
+        .content-wrapper {
+            padding: 1.5rem 2rem 2rem;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        /* Header Controls */
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.25rem;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: all 0.3s ease;
+        }
+
+            .sidebar-toggle:hover {
+                background: rgba(255,255,255,0.1);
+                color: white;
+            }
+
+        .user-dropdown .dropdown-toggle {
+            background: none;
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+            .user-dropdown .dropdown-toggle:hover {
+                background: rgba(255,255,255,0.1);
+            }
+
+        .user-dropdown .dropdown-menu {
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-radius: 0.5rem;
+        }
+
+        /* Alert Styles */
+        .alert {
+            border: none;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #f8d7da, #f1b2b7);
+            color: #721c24;
+        }
+
+        /* Footer */
+        .admin-footer {
+            background: white;
+            border-top: 1px solid #dee2e6;
+            padding: 1.5rem 2rem;
+            margin-top: auto;
+        }
+
+        /* Mobile Responsiveness */
+        @@media (max-width: 768px) {
+            .admin-sidebar
+
+        {
+            transform: translateX(-100%);
+            z-index: 1050;
+        }
+
+        .admin-sidebar.show {
+            transform: translateX(0);
+        }
+
+        .admin-header {
+            left: 0 !important;
+        }
+
+        .admin-content {
+            margin-left: 0;
+            padding-top: calc(var(--header-height) + 1rem);
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1045;
+            display: none;
+        }
+
+            .sidebar-overlay.show {
+                display: block;
+            }
+
+        .content-wrapper {
+            padding: 1rem;
+        }
+
+        }
+
+        /* Custom Scrollbar */
+        .admin-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .admin-sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .admin-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+        }
+
+            .admin-sidebar::-webkit-scrollbar-thumb:hover {
+                background: rgba(255,255,255,0.5);
+            }
+    </style>
 </head>
-<body class="sb-nav-fixed">
-    <!-- TOP NAVBAR -->
-    <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
-        <a class="navbar-brand ps-3" href="@Url.Action("Index", "AdminDashboard")">DKMovies Admin</a>
-        <button class="btn btn-link btn-sm me-4 me-lg-0" id="sidebarToggle"><i class="fas fa-bars"></i></button>
-    </nav>
+<body>
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <div id="layoutSidenav">
-        <!-- SIDEBAR -->
-        <div id="layoutSidenav_nav">
-            <nav class="sb-sidenav accordion sb-sidenav-dark bg-dark" id="sidenavAccordion">
-                <div class="sb-sidenav-menu">
-                    <div class="nav">
-
-                        <div class="sb-sidenav-menu-heading">QUẢN LÝ</div>
-
-                        <a class="nav-link" href="@Url.Action("Index", "AdminDashboard")">
-                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
-                            Tổng quan
-                        </a>
-
-                        <a class="nav-link" href="@Url.Action("Index", "AdminMovie")">
-                            <div class="sb-nav-link-icon"><i class="fas fa-film"></i></div>
-                            Phim
-                        </a>
-
-                        <a class="nav-link" href="@Url.Action("Index", "AdminShowtime")">
-                            <div class="sb-nav-link-icon"><i class="fas fa-clock"></i></div>
-                            Lịch chiếu
-                        </a>
-
-                        <a class="nav-link" href="@Url.Action("Index", "AdminOrder")">
-                            <div class="sb-nav-link-icon"><i class="fas fa-ticket-alt"></i></div>
-                            Đơn hàng vé
-                        </a>
-
-                        <a class="nav-link" href="@Url.Action("Index", "AdminConcession")">
-                            <div class="sb-nav-link-icon"><i class="fas fa-hamburger"></i></div>
-                            Đồ ăn / Combo
-                        </a>
-
-                        <a class="nav-link" href="@Url.Action("Index", "AdminUser")">
-                            <div class="sb-nav-link-icon"><i class="fas fa-users"></i></div>
-                            Người dùng
-                        </a>
-
-                        <a class="nav-link" href="@Url.Action("Index", "AdminEmployee")">
-                            <div class="sb-nav-link-icon"><i class="fas fa-user-shield"></i></div>
-                            Nhân viên
-                        </a>
-
-                        <a class="nav-link" href="@Url.Action("Logout", "Account")">
-                            <div class="sb-nav-link-icon"><i class="fas fa-sign-out-alt"></i></div>
-                            Đăng xuất
-                        </a>
-
-                    </div>
-                </div>
-            </nav>
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-film sidebar-brand-icon"></i>
+            <span class="sidebar-brand-text">DKMovies Admin</span>
         </div>
 
-        <!-- MAIN CONTENT -->
-        <div id="layoutSidenav_content">
-            <main>
-                <div class="container-fluid px-4 pt-4">
-                    @RenderBody()
-                </div>
-            </main>
-        </div>
-    </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">Overview</div>
+            <div class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Admins" ? "active" : "")"
+                   href="@Url.Action("Index", "Admins")">
+                    <i class="fas fa-tachometer-alt nav-icon"></i>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+            </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+            <div class="nav-section-title">Management</div>
+            <div class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminMovie" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminMovie")">
+                    <i class="fas fa-film nav-icon"></i>
+                    <span class="nav-text">Movies</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminShowTime" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminShowTime")">
+                    <i class="fas fa-clock nav-icon"></i>
+                    <span class="nav-text">Showtimes</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminUser" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminUser")">
+                    <i class="fas fa-users nav-icon"></i>
+                    <span class="nav-text">Users</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminEmployee" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminEmployee")">
+                    <i class="fas fa-user-tie nav-icon"></i>
+                    <span class="nav-text">Employees</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminConcession" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminConcession")">
+                    <i class="fas fa-utensils nav-icon"></i>
+                    <span class="nav-text">Concessions</span>
+                </a>
+            </div>
+
+            <div class="nav-section-title">Reports & Analytics</div>
+            <div class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "MovieDashboard" ? "active" : "")"
+                   href="@Url.Action("MovieDashboard", "Admins")">
+                    <i class="fas fa-chart-line nav-icon"></i>
+                    <span class="nav-text">Movie Statistics</span>
+                </a>
+            </div>
+
+            <div class="nav-section-title">Other</div>
+            <div class="nav-item">
+                <a class="nav-link" href="@Url.Action("Index", "Home")" target="_blank">
+                    <i class="fas fa-external-link-alt nav-icon"></i>
+                    <span class="nav-text">User Website</span>
+                </a>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-footer-text">
+                <div class="small text-muted">Logged in as:</div>
+                <div class="fw-medium">@(User?.Identity?.Name ?? "Guest")</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Admin Header -->
+    <header class="admin-header" id="adminHeader">
+        <div class="d-flex align-items-center justify-content-between h-100 px-3">
+            <div class="d-flex align-items-center">
+                <button class="sidebar-toggle me-3" id="sidebarToggle" type="button">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h6 class="mb-0 text-white d-none d-md-block">@ViewData["Title"]</h6>
+            </div>
+
+            <div class="d-flex align-items-center">
+                <!-- User Dropdown -->
+                <div class="dropdown user-dropdown">
+                    <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><h6 class="dropdown-header">@(User?.Identity?.Name ?? "Guest")</h6></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user-circle me-2"></i>Profile</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="@Url.Action("Logout", "Account")">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="admin-content" id="adminContent">
+        <div class="content-wrapper">
+            <!-- Alert Messages -->
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <!-- Page Content -->
+            @RenderBody()
+        </div>
+
+        <!-- Footer -->
+        <footer class="admin-footer">
+            <div class="d-flex align-items-center justify-content-between small">
+                <div class="text-muted">
+                    <i class="fas fa-copyright me-1"></i>
+                    Copyright DKMovies 2025
+                </div>
+                <div>
+                    <a href="#" class="text-decoration-none me-3">Privacy Policy</a>
+                    <a href="#" class="text-decoration-none">Terms & Conditions</a>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@latest/dist/chart.umd.min.js"></script>
+
     <script>
-        document.getElementById("sidebarToggle")?.addEventListener("click", function () {
-            document.body.classList.toggle("sb-sidenav-toggled");
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('adminSidebar');
+            const header = document.getElementById('adminHeader');
+            const content = document.getElementById('adminContent');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            let sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+
+            // Initialize sidebar state
+            if (window.innerWidth > 768) {
+                if (sidebarCollapsed) {
+                    toggleSidebar(true);
+                }
+            }
+
+            // Sidebar toggle functionality
+            sidebarToggle.addEventListener('click', function() {
+                if (window.innerWidth <= 768) {
+                    // Mobile behavior
+                    sidebar.classList.toggle('show');
+                    sidebarOverlay.classList.toggle('show');
+                } else {
+                    // Desktop behavior
+                    toggleSidebar();
+                }
+            });
+
+            // Close sidebar on overlay click (mobile)
+            sidebarOverlay.addEventListener('click', function() {
+                sidebar.classList.remove('show');
+                sidebarOverlay.classList.remove('show');
+            });
+
+            function toggleSidebar(force = null) {
+                if (force !== null) {
+                    sidebarCollapsed = force;
+                } else {
+                    sidebarCollapsed = !sidebarCollapsed;
+                }
+
+                if (sidebarCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    header.classList.add('sidebar-collapsed');
+                    content.classList.add('sidebar-collapsed');
+                } else {
+                    sidebar.classList.remove('collapsed');
+                    header.classList.remove('sidebar-collapsed');
+                    content.classList.remove('sidebar-collapsed');
+                }
+
+                localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+            }
+
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('show');
+                    sidebarOverlay.classList.remove('show');
+                } else {
+                    sidebar.classList.remove('show');
+                    sidebarOverlay.classList.remove('show');
+                }
+            });
+
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(alert => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
         });
     </script>
-    <script src="~/js/admin.js"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

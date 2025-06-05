@@ -35,8 +35,18 @@ CREATE TABLE Directors (
     FullName NVARCHAR(255) UNIQUE NOT NULL,
     DateOfBirth DATE,
     Biography NVARCHAR(MAX),
-    CountryID INT FOREIGN KEY REFERENCES Countries(ID) ON DELETE CASCADE,
+    PlaceOfBirth NVARCHAR(255),
 	ProfileImagePath NVARCHAR(500),
+);
+
+-- ACTORS
+CREATE TABLE Actors (
+    ID INT IDENTITY PRIMARY KEY,
+    FullName NVARCHAR(255) UNIQUE NOT NULL,
+    Biography NVARCHAR(MAX),
+    DateOfBirth DATE,
+    PlaceOfBirth NVARCHAR(255),
+    ProfileImagePath NVARCHAR(255)
 );
 
 -- USERS
@@ -98,6 +108,16 @@ CREATE TABLE Movies (
     PosterImagePath NVARCHAR(500),
 	WallpaperImagePath NVARCHAR(500),
 	TrailerUrl NVARCHAR(500) NULL
+);
+
+-- MoviesActors (Junction Table)
+CREATE TABLE MovieActors (
+	ID INT IDENTITY PRIMARY KEY,
+    MovieID INT NOT NULL,
+    ActorID INT NOT NULL,
+    Role NVARCHAR(255),
+    FOREIGN KEY (MovieID) REFERENCES Movies(ID) ON DELETE CASCADE,
+    FOREIGN KEY (ActorID) REFERENCES Actors(ID) ON DELETE CASCADE
 );
 
 -- MOVIEGENRE

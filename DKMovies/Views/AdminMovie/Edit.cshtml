@@ -1,0 +1,72 @@
+﻿@model DKMovies.Models.Movie
+@{
+    ViewData["Title"] = "Chỉnh sửa phim";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-4 text-dark fw-bold">
+    <i class="fas fa-edit text-warning me-2"></i> Chỉnh sửa thông tin phim
+</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="ID" />
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <label asp-for="Title" class="form-label">Tiêu đề phim</label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label asp-for="MovieGenres" class="form-label">Thể loại</label>
+            <select asp-for="MovieGenres" class="form-select" asp-items="ViewBag.GenreID">
+                <option value="">-- Chọn thể loại --</option>
+            </select>
+            <span asp-validation-for="MovieGenres" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-4">
+            <label asp-for="DurationMinutes" class="form-label">Thời lượng (phút)</label>
+            <input asp-for="DurationMinutes" class="form-control" type="number" min="1" />
+            <span asp-validation-for="DurationMinutes" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-4">
+            <label asp-for="ReleaseDate" class="form-label">Ngày phát hành</label>
+            <input asp-for="ReleaseDate" class="form-control" type="date" />
+            <span asp-validation-for="ReleaseDate" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-12">
+            <label asp-for="Description" class="form-label">Mô tả phim</label>
+            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label asp-for="PosterImagePath" class="form-label">URL ảnh poster</label>
+            <input asp-for="PosterImagePath" class="form-control" />
+            <span asp-validation-for="PosterImagePath" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label asp-for="TrailerUrl" class="form-label">URL trailer YouTube</label>
+            <input asp-for="TrailerUrl" class="form-control" />
+            <span asp-validation-for="TrailerUrl" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Quay lại
+        </a>
+        <button type="submit" class="btn btn-warning">
+            <i class="fas fa-save me-1"></i> Cập nhật
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

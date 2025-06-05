@@ -1,0 +1,582 @@
+﻿@using DKMovies.Models.ViewModels
+@model MovieIndexViewModel
+@{
+    ViewData["Title"] = "Movie Management";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<!-- Header Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 bg-gradient-primary text-white shadow-sm">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1 fw-bold">
+                            <i class="fas fa-film me-2"></i>Movie Management
+                        </h2>
+                        <p class="mb-0 opacity-90">Manage your cinema collection</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-light btn-sm" onclick="location.reload()">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                        <a asp-action="Create" class="btn btn-warning">
+                            <i class="fas fa-plus me-2"></i>Add New Movie
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Movies.Any())
+{
+    <!-- Empty State -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-film text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || Model.FilterType != "all")
+                    {
+                        <h4 class="text-muted mb-3">No Movies Found</h4>
+                        <p class="text-muted mb-4">
+                            No movies match your search criteria. Try adjusting your filters or search term.
+                        </p>
+                        <div class="d-flex gap-2 justify-content-center">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Clear Filters
+                            </a>
+                            <a asp-action="Create" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Add New Movie
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <h4 class="text-muted mb-3">No Movies Available</h4>
+                        <p class="text-muted mb-4">
+                            Add your first movie to start managing your cinema collection.
+                        </p>
+                        <a asp-action="Create" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add First Movie
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Filter and Search Section -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <form asp-action="Index" method="get" id="filterForm">
+                <input type="hidden" name="page" value="1" id="pageInput" />
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <h5 class="mb-0 text-dark">
+                        <i class="fas fa-list me-2 text-primary"></i>
+                        Movie Collection
+                        <span class="badge bg-primary ms-2">@Model.TotalMovies</span>
+                    </h5>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-filter me-1"></i>
+                                @(Model.FilterType == "all" ? "All Movies" :
+                                    Model.FilterType == "showing" ? "Now Showing" : "Coming Soon")
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item @(Model.FilterType == "all" ? "active" : "")"
+                                       href="javascript:void(0)" onclick="setFilter('all')">All Movies</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item @(Model.FilterType == "showing" ? "active" : "")"
+                                       href="javascript:void(0)" onclick="setFilter('showing')">Now Showing</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item @(Model.FilterType == "upcoming" ? "active" : "")"
+                                       href="javascript:void(0)" onclick="setFilter('upcoming')">Coming Soon</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="input-group" style="width: 250px;">
+                            <input type="text" name="search" class="form-control"
+                                   placeholder="Search movies..." value="@Model.SearchTerm" id="searchInput">
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" name="filter" value="@Model.FilterType" id="filterInput" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Info -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    Showing @Model.StartItem-@Model.EndItem of @Model.TotalMovies movies
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+                    {
+                        <span> for "@Model.SearchTerm"</span>
+                    }
+                </small>
+                @if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || Model.FilterType != "all")
+                {
+                    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>Clear Filters
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Movies Grid -->
+    <div class="row" id="moviesContainer">
+        @foreach (var movie in Model.Movies)
+        {
+            <div class="col-12 mb-4 movie-item">
+                <div class="card border-0 shadow-sm movie-card h-100" onclick="goToDetails(@movie.ID)" style="cursor: pointer;">
+                    <!-- Delete Button -->
+                    <button type="button" class="btn btn-danger btn-sm position-absolute delete-btn"
+                            style="top: 10px; right: 10px; z-index: 10; border-radius: 50%; width: 35px; height: 35px; padding: 0;"
+                            onclick="event.stopPropagation(); confirmDelete(@movie.ID, '@movie.Title')"
+                            data-bs-toggle="tooltip" title="Delete Movie">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <!-- Movie Poster -->
+                            <div class="col-md-2 col-sm-3">
+                                <div class="poster-container">
+                                    @{
+                                        var posterPath = string.IsNullOrWhiteSpace(movie.PosterImagePath)
+                                        ? "default-poster.jpg"
+                                        : movie.PosterImagePath.TrimStart('/');
+                                        var fullPosterPath = Url.Content($"~/images/movie_posters/{posterPath}");
+                                    }
+                                    <img src="@fullPosterPath"
+                                         alt="@movie.Title"
+                                         class="img-fluid movie-poster"
+                                         onerror="this.onerror=null; this.src='@Url.Content("~/images/movie_posters/default-poster.jpg")'" />
+                                </div>
+                            </div>
+
+                            <!-- Movie Details -->
+                            <div class="col-md-10 col-sm-9">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h5 class="card-title mb-1 fw-bold text-dark">@movie.Title</h5>
+                                        @if (movie.Director != null && !string.IsNullOrWhiteSpace(movie.Director.FullName))
+                                        {
+                                            <p class="text-muted mb-2">
+                                                <i class="fas fa-user-tie me-1"></i>Directed by @movie.Director.FullName
+                                            </p>
+                                        }
+                                    </div>
+                                    <div class="text-end">
+                                        @{
+                                            var isActive = movie.ReleaseDate.HasValue && movie.ReleaseDate.Value <= DateTime.Now;
+                                            var badgeClass = isActive ? "bg-success" : "bg-warning text-dark";
+                                            var statusText = isActive ? "Now Showing" : "Coming Soon";
+                                        }
+                                        <span class="badge @badgeClass px-2 py-1 mb-2">@statusText</span>
+                                    </div>
+                                </div>
+
+                                <!-- Movie Info Row -->
+                                <div class="row g-2 mb-3">
+                                    <div class="col-auto">
+                                        <span class="badge bg-info text-white">
+                                            <i class="fas fa-clock me-1"></i>@movie.DurationMinutes min
+                                        </span>
+                                    </div>
+                                    <div class="col-auto">
+                                        @if (movie.Rating != null)
+                                        {
+                                            <span class="badge bg-warning text-dark">@movie.Rating.Value</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Unrated</span>
+                                        }
+                                    </div>
+                                    <div class="col-auto">
+                                        @if (movie.Language != null)
+                                        {
+                                            <span class="badge bg-secondary">@movie.Language.Name</span>
+                                        }
+                                    </div>
+                                    <div class="col-auto">
+                                        @if (movie.ReleaseDate.HasValue)
+                                        {
+                                            <span class="badge bg-light text-dark">@movie.ReleaseDate.Value.ToString("MMM dd, yyyy")</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Genres -->
+                                @if (movie.MovieGenres != null && movie.MovieGenres.Any())
+                                {
+                                    <div class="mb-3">
+                                        @foreach (var genre in movie.MovieGenres.Take(4))
+                                        {
+                                            <span class="badge bg-light text-dark me-1 mb-1">@genre.Genre?.Name</span>
+                                        }
+                                        @if (movie.MovieGenres.Count() > 4)
+                                        {
+                                            <span class="badge bg-secondary"
+                                                  data-bs-toggle="tooltip"
+                                                  title="@string.Join(", ", movie.MovieGenres.Skip(4).Select(g => g.Genre?.Name))">
+                                                +@(movie.MovieGenres.Count() - 4) more
+                                            </span>
+                                        }
+                                    </div>
+                                }
+
+                                <!-- Description -->
+                                @if (!string.IsNullOrWhiteSpace(movie.Description))
+                                {
+                                    <p class="text-muted mb-0 description-text">
+                                        @(movie.Description.Length > 150 ? movie.Description.Substring(0, 150) + "..." : movie.Description)
+                                    </p>
+                                }
+                            </div>
+                        </div>
+                    </div>                   
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <nav aria-label="Movie pagination">
+                    <ul class="pagination justify-content-center mb-0">
+                        <!-- First Page -->
+                        @if (Model.CurrentPage > 3)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(1)">
+                                    <i class="fas fa-angle-double-left"></i>
+                                </a>
+                            </li>
+                        }
+
+                        <!-- Previous Page -->
+                        @if (Model.HasPreviousPage)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(Model.CurrentPage - 1)">
+                                    <i class="fas fa-angle-left"></i>
+                                </a>
+                            </li>
+                        }
+
+                        <!-- Page Numbers -->
+                        @{
+                            var startPage = Math.Max(1, Model.CurrentPage - 2);
+                            var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="@GetPageUrl(i)">@i</a>
+                            </li>
+                        }
+
+                        <!-- Next Page -->
+                        @if (Model.HasNextPage)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(Model.CurrentPage + 1)">
+                                    <i class="fas fa-angle-right"></i>
+                                </a>
+                            </li>
+                        }
+
+                        <!-- Last Page -->
+                        @if (Model.CurrentPage < Model.TotalPages - 2)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(Model.TotalPages)">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Pagination Info -->
+        <div class="row mb-3">
+            <div class="col-12 text-center">
+                <small class="text-muted">
+                    Page @Model.CurrentPage of @Model.TotalPages
+                    (@Model.StartItem-@Model.EndItem of @Model.TotalMovies movies)
+                </small>
+            </div>
+        </div>
+    }
+
+    <!-- Footer Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Total: @Model.TotalMovies movies</strong>
+                            <span class="text-muted ms-2">in your collection</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a asp-controller="AdminShowTime" asp-action="Index" class="btn btn-outline-primary">
+                                <i class="fas fa-calendar-alt me-1"></i>Manage Showtimes
+                            </a>
+                            <a asp-action="Create" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Add New Movie
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-danger me-2"></i>Confirm Deletion
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Are you sure you want to delete this movie?</p>
+                <div class="alert alert-danger">
+                    <strong id="movieTitleToDelete"></strong>
+                </div>
+                <p class="text-muted small mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    This action cannot be undone. All related data will be permanently deleted.
+                </p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="confirmDeleteBtn" href="#" class="btn btn-danger">
+                    <i class="fas fa-trash-alt me-1"></i>Delete Movie
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@{
+    string GetPageUrl(int page)
+    {
+        var routeValues = new Dictionary<string, object>
+                {
+                    ["page"] = page
+                };
+
+        if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+            routeValues["search"] = Model.SearchTerm;
+
+        if (Model.FilterType != "all")
+            routeValues["filter"] = Model.FilterType;
+
+        return Url.Action("Index", routeValues);
+    }
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Add hover effects
+            $('.movie-card').hover(
+                function() {
+                    $(this).addClass('shadow-lg').css('transform', 'translateY(-2px)');
+                },
+                function() {
+                    $(this).removeClass('shadow-lg').css('transform', 'none');
+                }
+            );
+
+            // Auto-submit search form on Enter
+            $('#searchInput').on('keypress', function(e) {
+                if (e.which === 13) {
+                    $('#pageInput').val(1); // Reset to first page on search
+                    $('#filterForm').submit();
+                }
+            });
+        });
+
+        // Navigate to details
+        function goToDetails(movieId) {
+            window.location.href = '/AdminMovie/Details/' + movieId;
+        }
+
+        // Delete confirmation function
+        function confirmDelete(movieId, movieTitle) {
+            document.getElementById('movieTitleToDelete').textContent = movieTitle;
+            document.getElementById('confirmDeleteBtn').href = '/AdminMovie/Delete/' + movieId;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+
+        // Filter function
+        function setFilter(filterType) {
+            $('#filterInput').val(filterType);
+            $('#pageInput').val(1); // Reset to first page on filter change
+            $('#filterForm').submit();
+        }
+    </script>
+}
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .movie-card {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .movie-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+        }
+
+    .poster-container {
+        position: relative;
+        width: 100%;
+        max-width: 120px;
+    }
+
+    .movie-poster {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+
+        .movie-poster:hover {
+            transform: scale(1.05);
+        }
+
+    .delete-btn {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .movie-card:hover .delete-btn {
+        opacity: 1;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .description-text {
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .card-title {
+        color: #2c3e50;
+    }
+
+    .pagination .page-link {
+        color: #667eea;
+        border-color: #dee2e6;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #667eea;
+        border-color: #667eea;
+    }
+
+    .pagination .page-link:hover {
+        color: #764ba2;
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+    }
+
+    @@media (max-width: 768px) {
+        .poster-container
+
+    {
+        max-width: 80px;
+    }
+
+    .movie-poster {
+        height: 120px;
+    }
+
+    .delete-btn {
+        opacity: 1;
+        width: 30px;
+        height: 30px;
+        top: 5px;
+        right: 5px;
+    }
+
+    .pagination {
+        font-size: 0.875rem;
+    }
+
+        .pagination .page-link {
+            padding: 0.375rem 0.5rem;
+        }
+
+    }
+
+    @@media (max-width: 576px) {
+        .d-flex.gap-2
+
+    {
+        flex-direction: column;
+        gap: 0.5rem !important;
+    }
+
+    .input-group {
+        width: 100% !important;
+    }
+
+    .pagination {
+        justify-content: center !important;
+        flex-wrap: wrap;
+    }
+
+    }
+</style>

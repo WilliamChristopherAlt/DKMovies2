@@ -196,15 +196,15 @@
                             }
                             else if (role == "User")
                             {
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">User Info</a></li>
+                                <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index">User Info</a></li>
                                 <li><a class="dropdown-item" asp-controller="Watchlist" asp-action="MyWatchlist">My Watchlist</a></li>
                                 <li><a class="dropdown-item" asp-controller="Tickets" asp-action="UserTickets">Tickets History</a></li>
                                 <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout" id="logoutLink">Logout</a></li>
                             }
                             else if (role == "Admin")
                             {
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">Admin Info</a></li>
-                                <li><a class="dropdown-item" asp-controller="Admin" asp-action="Dashboard">Admin Dashboard</a></li>
+                                <li><a class="dropdown-item" asp-controller="Profile" asp-action="AdminProfile">Admin Info</a></li>
+                                <li><a class="dropdown-item" asp-controller="Admins" asp-action="Index">Admin Dashboard</a></li>
                                 <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout" id="logoutLink">Logout</a></li>
                             }
                         </ul>
