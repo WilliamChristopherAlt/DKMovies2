@@ -1943,14 +1943,6 @@ END
 
 SET NOCOUNT OFF;
 
-
-
--- TICKETS
-
-
--- TICKET PAYMENTS
-
-
 -- CONCESSIONS
 INSERT INTO Concessions (Name, Description, ImagePath)
 VALUES
@@ -2016,6 +2008,7 @@ SET NOCOUNT OFF;
 
 GO
 
+-- REVIEWS
 -- Temp table for User-Genre biases (like/dislike)
 DECLARE @UserGenreBias TABLE (
     UserID INT,
@@ -2069,8 +2062,9 @@ BEGIN
     -- Use all users and randomly select for this movie
     INSERT INTO @SelectedUsers (UserID)
     SELECT TOP (@ReviewCount) ID
-    FROM Users
-    ORDER BY NEWID();
+	FROM Users
+	WHERE ID <> 1
+	ORDER BY NEWID();
 
     DECLARE user_cursor CURSOR FOR 
     SELECT UserID FROM @SelectedUsers;
