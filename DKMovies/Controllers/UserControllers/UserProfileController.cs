@@ -13,6 +13,7 @@ using System.IO;
 
 using DKMovies.Models.Data;
 using DKMovies.Models.Data.DatabaseModels;
+using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
 
 namespace Controllers.UserControllers
 {
@@ -32,6 +33,9 @@ namespace Controllers.UserControllers
             ModelState.Remove(nameof(DKMovies.Models.Data.DatabaseModels.User.Reviews));
             ModelState.Remove(nameof(DKMovies.Models.Data.DatabaseModels.User.PasswordHash));
             ModelState.Remove(nameof(DKMovies.Models.Data.DatabaseModels.User.ProfileImagePath));
+            ModelState.Remove(nameof(DKMovies.Models.Data.DatabaseModels.User.Notifications));
+            ModelState.Remove(nameof(DKMovies.Models.Data.DatabaseModels.User.LoginAttempts));
+            ModelState.Remove(nameof(DKMovies.Models.Data.DatabaseModels.User.ReviewReactions));
         }
 
         private string HashPassword(string password)
@@ -41,6 +45,11 @@ namespace Controllers.UserControllers
                 byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
                 return Convert.ToBase64String(bytes);
             }
+        }
+
+        private bool VerifyPassword(string password, string hash)
+        {
+            return HashPassword(password) == hash;
         }
 
         private async Task<string?> SaveImageAsync(IFormFile image)
@@ -137,8 +146,38 @@ namespace Controllers.UserControllers
 
 
                 // Update password if provided
+                // Update password if provided
                 if (!string.IsNullOrWhiteSpace(NewPassword))
                 {
+                    if (string.IsNullOrWhiteSpace(Request.Form["CurrentPassword"]))
+                    {
+                        ModelState.AddModelError("CurrentPassword", "Current password is required to change password.");
+                        // Reload the existing user to preserve the ProfileImagePath
+                        updatedUser.ProfileImagePath = existingUser.ProfileImagePath;
+                        return View(updatedUser);
+                    }
+
+                    if (!VerifyPassword(Request.Form["CurrentPassword"].ToString().Trim(), existingUser.PasswordHash))
+                    {
+                        ModelState.AddModelError("CurrentPassword", "Current password is incorrect.");
+                        // Reload the existing user to preserve the ProfileImagePath
+                        updatedUser.ProfileImagePath = existingUser.ProfileImagePath;
+                        return View(updatedUser);
+                    }
+
+                    // Validate password strength
+                    var passwordErrors = ValidatePasswordStrength(NewPassword.Trim());
+                    if (passwordErrors.Any())
+                    {
+                        foreach (var error in passwordErrors)
+                        {
+                            ModelState.AddModelError("NewPassword", error);
+                        }
+                        // Reload the existing user to preserve the ProfileImagePath
+                        updatedUser.ProfileImagePath = existingUser.ProfileImagePath;
+                        return View(updatedUser);
+                    }
+
                     existingUser.PasswordHash = HashPassword(NewPassword.Trim());
                 }
 
@@ -189,6 +228,28 @@ namespace Controllers.UserControllers
             }
 
             return RedirectToAction(nameof(Index));
+        }
+
+        private List<string> ValidatePasswordStrength(string password)
+        {
+            var errors = new List<string>();
+
+            if (password.Length < 8)
+                errors.Add("Password must be at least 8 characters long.");
+
+            if (!password.Any(char.IsUpper))
+                errors.Add("Password must contain at least one uppercase letter.");
+
+            if (!password.Any(char.IsLower))
+                errors.Add("Password must contain at least one lowercase letter.");
+
+            if (!password.Any(char.IsDigit))
+                errors.Add("Password must contain at least one number.");
+
+            if (!password.Any(ch => !char.IsLetterOrDigit(ch)))
+                errors.Add("Password must contain at least one special character.");
+
+            return errors;
         }
     }
 }

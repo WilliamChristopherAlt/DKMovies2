@@ -1,0 +1,533 @@
+﻿@using DKMovies.Models.Data.DatabaseModels;
+@model Admin
+@{
+    ViewData["Title"] = "Admin Profile";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+<style>
+    .profile-container {
+        background-color: #f8f9fa;
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+
+    .profile-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .profile-header {
+        background: #495057;
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 3px solid white;
+        object-fit: cover;
+        margin-bottom: 1rem;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .section-title.readonly {
+            color: #6c757d;
+            border-bottom-color: #dee2e6;
+        }
+
+        .section-title.editable {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+
+    .form-label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control, .form-select {
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        padding: 0.75rem;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .form-control:read-only {
+            background-color: #e9ecef;
+            opacity: 1;
+            cursor: not-allowed;
+        }
+
+    .readonly-section {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .editable-section {
+        background: #fff;
+        border: 2px solid #e3f2fd;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .info-display {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 0.75rem;
+        color: #495057;
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        border: 1px solid #007bff;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            border-color: #0056b3;
+        }
+
+    .btn-secondary {
+        background: #6c757d;
+        border: 1px solid #6c757d;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .role-badge {
+        background: #007bff;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        display: inline-block;
+        margin-top: 0.5rem;
+    }
+
+    .theater-info {
+        background: #e9ecef;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+        color: #495057;
+    }
+
+    .password-strength {
+        margin-top: 0.25rem;
+    }
+
+    .strength-bar {
+        height: 4px;
+        background-color: #e9ecef;
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .strength-fill {
+        height: 100%;
+        width: 0%;
+        transition: all 0.3s ease;
+        border-radius: 2px;
+    }
+
+    .strength-text {
+        display: block;
+        margin-top: 0.25rem;
+    }
+
+    .readonly-badge {
+        background: #6c757d;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-left: auto;
+    }
+
+    .editable-badge {
+        background: #28a745;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-left: auto;
+    }
+
+    .toast-container .toast {
+        border-radius: 8px;
+    }
+</style>
+
+<div class="profile-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <form asp-action="Index" asp-controller="AdminProfile" method="post">
+                    <div class="profile-card">
+                        <!-- Header -->
+                        <div class="profile-header">
+                            <img src="~/images/employees/@(Model.Employee.ProfileImagePath ?? "default.png")"
+                                 class="profile-avatar"
+                                 alt="Profile Picture" />
+                            <h4 class="mb-1">@(Model.Employee.FullName ?? "Admin Name")</h4>
+                            <p class="mb-0 opacity-75">@@@(Model.Username ?? "username")</p>
+                            <div class="role-badge">
+                                <i class="fas fa-user-shield me-1"></i>@(Model.Employee.Role?.Name ?? "Administrator")
+                            </div>
+                            <div class="theater-info">
+                                <i class="fas fa-building me-1"></i>@(Model.Employee.Theater?.Name ?? "Theater")
+                            </div>
+                        </div>
+
+                        <!-- Form Content -->
+                        <div class="p-4">
+                            <!-- Employee Information (Read-Only) -->
+                            <div class="readonly-section">
+                                <h5 class="section-title readonly">
+                                    <i class="fas fa-user-circle"></i>
+                                    Employee Information
+                                    <span class="readonly-badge">Read Only</span>
+                                </h5>
+                                <p class="text-muted mb-3">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Employee details are managed by HR and cannot be modified here.
+                                </p>
+
+                                <!-- Personal Information -->
+                                <div class="mb-4">
+                                    <h6 class="fw-bold text-secondary mb-3">Personal Details</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Full Name</label>
+                                            <div class="info-display">@(Model.Employee.FullName ?? "Not specified")</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Employee ID</label>
+                                            <div class="info-display">#@Model.Employee.ID</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Date of Birth</label>
+                                            <div class="info-display">
+                                                @(Model.Employee.DateOfBirth?.ToString("MMMM dd, yyyy") ?? "Not specified")
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Gender</label>
+                                            <div class="info-display">@(Model.Employee.Gender ?? "Not specified")</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Citizen ID</label>
+                                            <div class="info-display">@(Model.Employee.CitizenID ?? "Not specified")</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Address</label>
+                                            <div class="info-display">@(Model.Employee.Address ?? "Not specified")</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Contact Information -->
+                                <div class="mb-4">
+                                    <h6 class="fw-bold text-secondary mb-3">Contact Information</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Email Address</label>
+                                            <div class="info-display">@(Model.Employee.Email ?? "Not specified")</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Phone Number</label>
+                                            <div class="info-display">@(Model.Employee.Phone ?? "Not specified")</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Work Information -->
+                                <div class="mb-0">
+                                    <h6 class="fw-bold text-secondary mb-3">Work Information</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Theater</label>
+                                            <div class="info-display">@(Model.Employee.Theater?.Name ?? "Not assigned")</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Role</label>
+                                            <div class="info-display">@(Model.Employee.Role?.Name ?? "Not assigned")</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Hire Date</label>
+                                            <div class="info-display">
+                                                @Model.Employee.HireDate.ToString("MMMM dd, yyyy")
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Salary</label>
+                                            <div class="info-display">
+                                                @(Model.Employee.Salary?.ToString("C") ?? "Not specified")
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Admin Settings (Editable) -->
+                            <div class="editable-section">
+                                <h5 class="section-title editable">
+                                    <i class="fas fa-user-cog"></i>
+                                    Admin Account Settings
+                                    <span class="editable-badge">Editable</span>
+                                </h5>
+                                <p class="text-muted mb-3">
+                                    <i class="fas fa-edit me-1"></i>
+                                    You can modify your admin account credentials below.
+                                </p>
+
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        <label class="form-label">Username</label>
+                                        <input name="Username" value="@Model.Username" class="form-control"
+                                               placeholder="Enter your username" required />
+                                        <span class="text-danger small">@Html.ValidationMessage("Username")</span>
+                                    </div>
+                                </div>
+
+                                <!-- Password Change Section -->
+                                <div class="mt-4">
+                                    <h6 class="fw-bold text-primary mb-3">Change Password</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Current Password</label>
+                                            <input name="CurrentPassword" type="password" class="form-control"
+                                                   placeholder="Enter current password" />
+                                            <span class="text-danger small">@Html.ValidationMessage("CurrentPassword")</span>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">New Password</label>
+                                            <input name="NewPassword" type="password" class="form-control"
+                                                   placeholder="Enter new password" />
+                                            <span class="text-danger small">@Html.ValidationMessage("NewPassword")</span>
+                                            <div class="form-text">
+                                                Must be 8+ characters with uppercase, lowercase, number, and special character
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-info mt-3">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Note:</strong> Leave password fields empty if you don't want to change your password.
+                                    </div>
+                                </div>
+
+                                <!-- Account Information -->
+                                <div class="mt-4">
+                                    <h6 class="fw-bold text-secondary mb-3">Account Information</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Account Created</label>
+                                            <div class="info-display">
+                                                <i class="fas fa-calendar-alt me-2"></i>
+                                                @Model.CreatedAt.ToString("MMMM dd, yyyy 'at' hh:mm tt")
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Account Status</label>
+                                            <div class="info-display">
+                                                <i class="fas fa-shield-alt text-success me-2"></i>
+                                                Active & Verified
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex gap-3 justify-content-center">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Save Changes
+                                </button>
+                                <a href="@Url.Action("Index", "AdminDashboard")" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notifications -->
+@if (!string.IsNullOrEmpty(ViewBag.ToastMessage))
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+        <div class="toast show align-items-center text-bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-check-circle me-2"></i>@ViewBag.ToastMessage
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.ToastError))
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+        <div class="toast show align-items-center text-bg-danger border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-exclamation-circle me-2"></i>@ViewBag.ToastError
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Auto-hide toasts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const toasts = document.querySelectorAll('.toast');
+            toasts.forEach(toast => {
+                setTimeout(() => {
+                    if (bootstrap && bootstrap.Toast) {
+                        const bsToast = new bootstrap.Toast(toast);
+                        bsToast.hide();
+                    }
+                }, 5000);
+            });
+        });
+
+        // Password strength indicator
+        document.addEventListener('DOMContentLoaded', function() {
+            const newPasswordInput = document.querySelector('input[name="NewPassword"]');
+
+            if (newPasswordInput) {
+                // Create strength indicator
+                const strengthDiv = document.createElement('div');
+                strengthDiv.className = 'password-strength mt-1';
+                strengthDiv.innerHTML = `
+                    <div class="strength-bar">
+                        <div class="strength-fill"></div>
+                    </div>
+                    <small class="strength-text text-muted">Password strength</small>
+                `;
+                newPasswordInput.parentNode.insertBefore(strengthDiv, newPasswordInput.nextSibling.nextSibling);
+
+                newPasswordInput.addEventListener('input', function() {
+                    const password = this.value;
+                    const strength = calculatePasswordStrength(password);
+                    updateStrengthIndicator(strength, strengthDiv);
+                });
+            }
+        });
+
+        function calculatePasswordStrength(password) {
+            let score = 0;
+            let feedback = [];
+
+            if (password.length >= 8) score++;
+            else feedback.push('8+ characters');
+
+            if (/[A-Z]/.test(password)) score++;
+            else feedback.push('uppercase letter');
+
+            if (/[a-z]/.test(password)) score++;
+            else feedback.push('lowercase letter');
+
+            if (/\d/.test(password)) score++;
+            else feedback.push('number');
+
+            if (/[^A-Za-z0-9]/.test(password)) score++;
+            else feedback.push('special character');
+
+            return { score, feedback };
+        }
+
+        function updateStrengthIndicator(strength, container) {
+            const fill = container.querySelector('.strength-fill');
+            const text = container.querySelector('.strength-text');
+
+            const percentage = (strength.score / 5) * 100;
+            fill.style.width = percentage + '%';
+
+            let color = '#dc3545'; // red
+            let label = 'Weak';
+
+            if (strength.score >= 5) {
+                color = '#198754'; // green
+                label = 'Strong';
+            } else if (strength.score >= 3) {
+                color = '#ffc107'; // yellow
+                label = 'Medium';
+            }
+
+            fill.style.backgroundColor = color;
+
+            if (strength.feedback.length > 0) {
+                text.textContent = `${label} - Missing: ${strength.feedback.join(', ')}`;
+                text.className = 'strength-text text-muted small';
+            } else {
+                text.textContent = `${label} - All requirements met`;
+                text.className = 'strength-text text-success small';
+            }
+        }
+
+        // Form validation enhancement
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            const currentPasswordInput = document.querySelector('input[name="CurrentPassword"]');
+            const newPasswordInput = document.querySelector('input[name="NewPassword"]');
+
+            if (form && currentPasswordInput && newPasswordInput) {
+                form.addEventListener('submit', function(e) {
+                    // If new password is provided, current password is required
+                    if (newPasswordInput.value.trim() && !currentPasswordInput.value.trim()) {
+                        e.preventDefault();
+                        alert('Current password is required when changing password.');
+                        currentPasswordInput.focus();
+                        return false;
+                    }
+                });
+            }
+        });
+    </script>
+}

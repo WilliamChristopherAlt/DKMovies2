@@ -1,0 +1,299 @@
+﻿@using DKMovies.Models.Data.DatabaseModels;
+@model IEnumerable<Concession>
+
+@{
+    ViewData["Title"] = "Browse Concessions";
+    var currentPage = ViewData["CurrentPage"] as int? ?? 1;
+    var totalPages = ViewData["TotalPages"] as int? ?? 1;
+    var popularConcessions = ViewBag.PopularConcessions as List<Concession> ?? new List<Concession>();
+}
+
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .concession-section {
+        padding: 40px 20px;
+    }
+
+    .concession-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-top: 8px;
+        color: #222;
+    }
+
+    .concession-meta {
+        font-size: 0.8rem;
+        color: #666;
+    }
+
+    .card:hover {
+        transform: scale(1.02);
+        transition: transform 0.2s ease-in-out;
+        z-index: 1;
+    }
+
+    .card-img-top {
+        border-radius: 4px 4px 0 0;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: white;
+    }
+
+    .pagination .page-link {
+        color: #0d6efd;
+    }
+
+    .concession-card {
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+    }
+
+        .concession-card:hover {
+            transform: scale(1.02);
+        }
+
+        .concession-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+    .concession-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(2px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        padding: 1rem;
+        text-align: center;
+    }
+
+        .concession-overlay .concession-title {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.7), 1px 1px 2px rgba(0, 0, 0, 0.5);
+            margin-bottom: 1rem;
+            font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+            text-align: center;
+        }
+
+    .concession-card:hover .concession-overlay {
+        opacity: 1;
+    }
+
+    .scroll-concession-row {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden;
+        scroll-behavior: smooth;
+        gap: 1rem;
+        padding: 1rem 2rem;
+    }
+
+        .scroll-concession-row::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .scroll-concession-row > div {
+            flex-shrink: 0 !important;
+            width: 220px !important;
+        }
+
+    /* Popular section styling */
+    .popular-section {
+        background-color: #f8f9fa;
+        border-top: 3px solid #6c757d;
+    }
+
+    .popular-title {
+        color: #495057;
+    }
+
+    /* Carousel Navigation Buttons */
+    .carousel-nav-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+        opacity: 0.8;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+    }
+
+        .carousel-nav-btn:hover {
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+    .carousel-nav-btn-left {
+        left: 10px;
+    }
+
+    .carousel-nav-btn-right {
+        right: 10px;
+    }
+
+    /* Popular concessions section - simple buttons */
+    .popular-nav {
+        background-color: rgba(108, 117, 125, 0.8);
+        color: white;
+        border: 1px solid rgba(108, 117, 125, 0.5);
+    }
+
+        .popular-nav:hover {
+            background-color: rgba(108, 117, 125, 1);
+            color: white;
+        }
+</style>
+
+@* Popular Concessions Section *@
+@if (popularConcessions.Any())
+{
+    <section class="popular-section py-5">
+        <div class="container">
+            <h2 class="popular-title fw-bold text-center mb-4">⭐ Most Popular Concessions</h2>
+
+            <div class="position-relative">
+                <button class="btn carousel-nav-btn carousel-nav-btn-left popular-nav scroll-left-popular">
+                    <i class="bi bi-chevron-left fs-4"></i>
+                </button>
+
+                <div class="scroll-concession-row d-flex gap-3 overflow-auto pb-2 px-5" id="popular-concessions-scroll" style="scrollbar-width: thin;">
+                    @foreach (var concession in popularConcessions)
+                    {
+                        <div class="flex-shrink-0" style="width: 220px;">
+                            <div class="concession-card position-relative">
+                                <img src="@Url.Content("~/images/concessions/" + concession.ImagePath)"
+                                     onerror="this.onerror=null;this.src='/images/default-concession.jpg';"
+                                     alt="@concession.Name"
+                                     style="width: 100%; height: 280px; object-fit: cover;" />
+
+                                <div class="concession-overlay">
+                                    <div class="concession-title">@concession.Name</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <button class="btn carousel-nav-btn carousel-nav-btn-right popular-nav scroll-right-popular">
+                    <i class="bi bi-chevron-right fs-4"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+}
+
+@* All Concessions Grid Section *@
+<div class="concession-section container mt-5">
+    <h1 class="mb-4 text-center">Browse All Concessions</h1>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center">
+            <strong>No concessions found.</strong> Please check back later for delicious snacks and drinks!
+        </div>
+    }
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
+        @foreach (var concession in Model)
+        {
+            var imagePath = string.IsNullOrWhiteSpace(concession.ImagePath)
+            ? Url.Content("~/images/concessions/default.jpg")
+            : Url.Content($"~/images/concessions/{concession.ImagePath}");
+
+            <div class="col">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="ratio ratio-4x3" style="aspect-ratio: 4 / 3;">
+                        <img src="@imagePath" class="card-img-top" alt="@concession.Name" style="object-fit: cover; width: 100%; height: 100%;">
+                    </div>
+
+                    <div class="card-body text-center">
+                        <h5 class="concession-title">@concession.Name</h5>
+                        @if (!string.IsNullOrEmpty(concession.Description))
+                        {
+                            <p class="concession-meta">
+                                @(concession.Description.Length > 50 ? concession.Description.Substring(0, 50) + "..." : concession.Description)
+                            </p>
+                        }
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* Pagination *@
+    <div class="mt-4 text-center">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                @if (currentPage > 1)
+                {
+                    <li class="page-item">
+                        <a class="page-link" asp-controller="UserConcessions" asp-action="Index" asp-route-page="@(currentPage - 1)">Previous</a>
+                    </li>
+                }
+
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    <li class="page-item @(i == currentPage ? "active" : "")">
+                        <a class="page-link" asp-controller="UserConcessions" asp-action="Index" asp-route-page="@i">@i</a>
+                    </li>
+                }
+
+                @if (currentPage < totalPages)
+                {
+                    <li class="page-item">
+                        <a class="page-link" asp-controller="UserConcessions" asp-action="Index" asp-route-page="@(currentPage + 1)">Next</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const scrollAmount = 250;
+
+            // Popular Concessions Scroll
+            const popularScrollContainer = document.getElementById('popular-concessions-scroll');
+            const popularBtnLeft = document.querySelector('.scroll-left-popular');
+            const popularBtnRight = document.querySelector('.scroll-right-popular');
+
+            popularBtnLeft?.addEventListener("click", () => {
+                popularScrollContainer.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+            });
+
+            popularBtnRight?.addEventListener("click", () => {
+                popularScrollContainer.scrollBy({ left: scrollAmount, behavior: "smooth" });
+            });
+        });
+    </script>
+}

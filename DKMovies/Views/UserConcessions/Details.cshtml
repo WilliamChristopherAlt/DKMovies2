@@ -1,0 +1,373 @@
+﻿@using DKMovies.Models.Data.DatabaseModels;
+@model Concession
+
+@{
+    ViewData["Title"] = "Concession Details - " + Model.Name;
+}
+
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .concession-hero {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        padding: 60px 0;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .concession-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+
+        .concession-hero .container {
+            position: relative;
+            z-index: 2;
+        }
+
+    .concession-image {
+        border-radius: 15px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease;
+        max-width: 100%;
+        height: auto;
+    }
+
+        .concession-image:hover {
+            transform: scale(1.02);
+        }
+
+    .concession-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .concession-description {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .details-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        margin-top: -50px;
+        position: relative;
+        z-index: 3;
+    }
+
+    .info-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin: 0.25rem;
+        box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    .action-buttons {
+        margin-top: 2rem;
+    }
+
+        .action-buttons .btn {
+            margin: 0.5rem;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+    .btn-primary-custom {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+    }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+    .btn-outline-custom {
+        border: 2px solid #667eea;
+        color: #667eea;
+        background: transparent;
+    }
+
+        .btn-outline-custom:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+    .back-link {
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+
+        .back-link:hover {
+            color: white;
+            text-decoration: underline;
+        }
+
+    .concession-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.9;
+    }
+
+    .detail-section {
+        margin-bottom: 2rem;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+    }
+
+    .detail-content {
+        color: #666;
+        line-height: 1.6;
+        font-size: 1rem;
+    }
+
+    .availability-indicator {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.85rem;
+    }
+
+    .available {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .unavailable {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    @@media (max-width: 768px) {
+        .concession-title
+
+    {
+        font-size: 2rem;
+    }
+
+    .concession-description {
+        font-size: 1rem;
+    }
+
+    .details-card {
+        margin-top: -30px;
+        padding: 1.5rem;
+    }
+
+    .action-buttons .btn {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    }</style>
+
+<div class="concession-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <nav aria-label="breadcrumb" class="mb-3">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item">
+                            <a href="@Url.Action("Index", "Home")" class="back-link">
+                                <i class="bi bi-house-fill"></i> Home
+                            </a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a href="@Url.Action("Index", "UserConcessions")" class="back-link">
+                                <i class="bi bi-cup-straw"></i> Concessions
+                            </a>
+                        </li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">@Model.Name</li>
+                    </ol>
+                </nav>
+
+                <div class="concession-icon">🍿</div>
+                <h1 class="concession-title">@Model.Name</h1>
+
+                @if (!string.IsNullOrEmpty(Model.Description))
+                {
+                    <p class="concession-description">@Model.Description</p>
+                }
+                else
+                {
+                    <p class="concession-description">Delicious cinema snack perfect for your movie experience!</p>
+                }
+
+                <div class="info-badges">
+                    <span class="info-badge">
+                        <i class="bi bi-star-fill"></i> Premium Quality
+                    </span>
+                    <span class="info-badge">
+                        <i class="bi bi-cup-straw"></i> Cinema Favorite
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                @{
+                    var imagePath = string.IsNullOrWhiteSpace(Model.ImagePath)
+                    ? Url.Content("~/images/concessions/default.jpg")
+                    : Url.Content($"~/images/concessions/{Model.ImagePath}");
+                }
+                <img src="@imagePath"
+                     alt="@Model.Name"
+                     class="concession-image img-fluid"
+                     onerror="this.onerror=null;this.src='/images/concessions/default.jpg';" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="details-card">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="detail-section">
+                    <h3 class="detail-label">
+                        <i class="bi bi-info-circle-fill text-primary"></i> About This Item
+                    </h3>
+                    <div class="detail-content">
+                        @if (!string.IsNullOrEmpty(Model.Description))
+                        {
+                            <p>@Model.Description</p>
+                        }
+                        else
+                        {
+                            <p>This delicious concession item is perfect to enjoy during your movie experience. Made with quality ingredients and prepared fresh for your enjoyment.</p>
+                        }
+
+                        <p>Available at participating theater locations. Check with your local theater for availability and pricing.</p>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3 class="detail-label">
+                        <i class="bi bi-cup-straw text-warning"></i> Perfect For
+                    </h3>
+                    <div class="detail-content">
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle-fill text-success"></i> Movie nights</li>
+                            <li><i class="bi bi-check-circle-fill text-success"></i> Special occasions</li>
+                            <li><i class="bi bi-check-circle-fill text-success"></i> Sharing with friends</li>
+                            <li><i class="bi bi-check-circle-fill text-success"></i> Solo movie experiences</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="detail-section">
+                    <h3 class="detail-label">
+                        <i class="bi bi-bookmark-fill text-info"></i> Item Details
+                    </h3>
+                    <div class="detail-content">
+                        <p><strong>Item ID:</strong> #@Model.ID</p>
+                        <p><strong>Category:</strong> Cinema Concession</p>
+                        <p><strong>Type:</strong> Snack & Beverage</p>
+
+                        <div class="availability-indicator available">
+                            <i class="bi bi-check-circle-fill"></i> Available at Theaters
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons text-center">
+                    <a href="@Url.Action("Index", "UserMovies")" class="btn btn-primary-custom">
+                        <i class="bi bi-film"></i> Browse Movies
+                    </a>
+                    <a href="@Url.Action("Index", "UserConcessions")" class="btn btn-outline-custom">
+                        <i class="bi bi-arrow-left"></i> Back to Concessions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Information Section -->
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-4 text-center mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-primary mb-3">
+                        <i class="bi bi-shield-check" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="card-title">Quality Guaranteed</h5>
+                    <p class="card-text">All our concessions are made with premium ingredients and prepared fresh daily.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-warning mb-3">
+                        <i class="bi bi-geo-alt-fill" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="card-title">Available at All Theaters</h5>
+                    <p class="card-text">Find this item at any of our theater locations. Check with staff for current availability.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-success mb-3">
+                        <i class="bi bi-heart-fill" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="card-title">Customer Favorite</h5>
+                    <p class="card-text">Loved by moviegoers for its taste and quality. Perfect complement to your cinema experience.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-5 mb-5">
+    <div class="text-center">
+        <h3 class="mb-4">Ready to Enjoy Your Movie?</h3>
+        <p class="lead text-muted mb-4">Browse our current movie selection and book your tickets today!</p>
+        <a href="@Url.Action("Index", "UserMovies")" class="btn btn-primary-custom btn-lg">
+            <i class="bi bi-film"></i> Browse Movies
+        </a>
+    </div>
+</div>

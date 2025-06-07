@@ -1,10 +1,9 @@
 ﻿@{
-    ViewData["Title"] = "Xác thực 2 bước";
+    ViewData["Title"] = "Two-Factor Authentication";
     Layout = "~/Views/Shared/_Login.cshtml";
     var toastError = ViewData["ToastError"] as string;
     var email = ViewBag.Email as string;
 }
-
 <style>
     .verify-card {
         max-width: 500px;
@@ -45,33 +44,27 @@
             text-decoration: underline;
         }
 </style>
-
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="verify-card text-center">
-            <h2 class="verify-heading mb-3">🔐 Xác thực 2 bước</h2>
-            <p>Mã xác thực đã được gửi đến:</p>
+            <h2 class="verify-heading mb-3">🔐 Two-Factor Authentication</h2>
+            <p>A verification code has been sent to:</p>
             <p class="verify-email fw-bold">@email</p>
-            <p>Vui lòng nhập mã để tiếp tục đăng nhập vào tài khoản của bạn.</p>
-
+            <p>Please enter the code to continue logging into your account.</p>
             <form asp-action="Verify2FA" asp-controller="Account" method="post">
                 <input type="hidden" name="email" value="@email" />
-
                 <div class="form-outline mb-4">
                     <input type="text" id="code" name="code" class="form-control verify-input" required />
-                    <label class="form-label" for="code">Mã xác thực</label>
+                    <label class="form-label" for="code">Verification Code</label>
                 </div>
-
-                <button type="submit" class="btn btn-success w-100 verify-btn mb-3">🔓 XÁC THỰC</button>
-
+                <button type="submit" class="btn btn-success w-100 verify-btn mb-3">🔓 VERIFY</button>
                 <div class="verify-footer">
-                    <a href="@Url.Action("Login", "Account")">🔙 Quay lại đăng nhập</a>
+                    <a href="@Url.Action("Login", "Account")">🔙 Back to Login</a>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
 @if (!string.IsNullOrEmpty(toastError))
 {
     <div class="toast align-items-center text-bg-danger border-0 position-fixed top-0 end-0 m-3 show" role="alert">

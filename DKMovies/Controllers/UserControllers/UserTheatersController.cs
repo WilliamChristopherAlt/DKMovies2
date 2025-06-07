@@ -12,14 +12,10 @@ namespace DKMovies.Controllers
     {
         private readonly ApplicationDbContext _context;
         private const int PageSize = 9; // Number of theaters per page
-        private readonly string _googleMapsApiKey;
-        private readonly IConfiguration _configuration;
 
-        public UserTheatersController(ApplicationDbContext context, IConfiguration configuration) // Add IConfiguration parameter
+        public UserTheatersController(ApplicationDbContext context) // Add IConfiguration parameter
         {
             _context = context;
-            _configuration = configuration; // Assign it
-            _googleMapsApiKey = _configuration["GoogleMaps:ApiKey"] ?? ""; // Now use _configuration
         }
 
         // GET: UserTheaters
@@ -122,9 +118,6 @@ namespace DKMovies.Controllers
 
             ViewBag.CurrentMovies = currentMovies;
             ViewBag.TheaterConcessions = theaterConcessions;
-
-            // Add Google Maps API key if you have one
-            ViewData["GoogleMapsApiKey"] = _googleMapsApiKey;
 
             return View(theater);
         }

@@ -81,7 +81,7 @@ namespace Controllers.Admin
         }
 
         // ===== SỬA MovieDashboard ACTION TRONG AdminsController =====
-        public async Task<IActionResult> MovieDashboard()
+        public async Task<IActionResult> Dashboard()
         {
             try
             {

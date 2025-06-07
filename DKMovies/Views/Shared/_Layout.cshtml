@@ -123,7 +123,64 @@
             color: #3f51b5;
         }
 
-        /* Navigation Dropdown Button */
+        /* UPDATED: Unified Navigation Icon Styles */
+        .nav-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            border: none;
+            background: #f8f9fa;
+            color: #6c757d;
+            text-decoration: none !important;
+            position: relative;
+        }
+
+            .nav-icon:hover {
+                background: #e9ecef;
+                transform: translateY(-1px);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+
+            .nav-icon i {
+                font-size: 18px;
+            }
+
+            /* Specific colors for each nav icon */
+            .nav-icon.messages-icon {
+                background: rgba(13, 202, 240, 0.1);
+                color: #0dcaf0;
+            }
+
+                .nav-icon.messages-icon:hover {
+                    background: rgba(13, 202, 240, 0.2);
+                    color: #0aa3c7;
+                }
+
+            .nav-icon.notifications-icon {
+                background: rgba(255, 193, 7, 0.1);
+                color: #ffc107;
+            }
+
+                .nav-icon.notifications-icon:hover {
+                    background: rgba(255, 193, 7, 0.2);
+                    color: #d39e00;
+                }
+
+            .nav-icon.user-icon {
+                background: rgba(25, 135, 84, 0.1);
+                color: #198754;
+            }
+
+                .nav-icon.user-icon:hover {
+                    background: rgba(25, 135, 84, 0.2);
+                    color: #146c43;
+                }
+
+        /* Navigation Dropdown Button - Browse Menu */
         #navDropdown {
             color: #495057 !important;
             border: none !important;
@@ -139,10 +196,10 @@
                 font-size: 16px;
             }
 
-            /* Dropdown Menu */
+            /* Browse Dropdown Menu */
             #navDropdown + .dropdown-menu {
                 border: 1px solid #e9ecef;
-                border-radius: 8px;
+                border-radius: 12px;
                 padding: 8px 0;
                 margin-top: 4px;
                 box-shadow: 0 4px 16px rgba(0,0,0,0.1);
@@ -165,7 +222,7 @@
                 font-size: 16px;
             }
 
-        /* Dropdown Items */
+        /* Browse Dropdown Items */
         #navDropdown + .dropdown-menu .dropdown-item {
             border-radius: 0;
             margin: 0;
@@ -211,13 +268,191 @@
                 background-color: rgba(108, 117, 125, 0.1);
             }
 
-        /* Divider */
+        /* Browse Dropdown Divider */
         #navDropdown + .dropdown-menu .dropdown-divider {
             margin: 4px 0;
             border-color: #e9ecef;
         }
-</style>
+
+        /* UPDATED: User Dropdown Menu - Matching Browse Style */
+        #userDropdown + .dropdown-menu {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 8px 0;
+            margin-top: 4px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            min-width: 200px;
+        }
+
+            #userDropdown + .dropdown-menu .dropdown-item {
+                border-radius: 0;
+                margin: 0;
+                padding: 10px 16px;
+                transition: background-color 0.2s ease;
+                white-space: nowrap;
+                display: flex;
+                align-items: center;
+            }
+
+                #userDropdown + .dropdown-menu .dropdown-item:hover {
+                    background-color: #f8f9fa;
+                }
+
+                #userDropdown + .dropdown-menu .dropdown-item i {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #f8f9fa;
+                    margin-right: 12px;
+                    font-size: 16px;
+                    flex-shrink: 0;
+                }
+
+                #userDropdown + .dropdown-menu .dropdown-item span {
+                    color: #212529;
+                    font-size: 14px;
+                    font-weight: 500;
+                }
+
+                /* User dropdown icon colors */
+                #userDropdown + .dropdown-menu .dropdown-item:hover i.text-primary {
+                    background-color: rgba(13, 110, 253, 0.1);
+                }
+
+                #userDropdown + .dropdown-menu .dropdown-item:hover i.text-success {
+                    background-color: rgba(25, 135, 84, 0.1);
+                }
+
+                #userDropdown + .dropdown-menu .dropdown-item:hover i.text-info {
+                    background-color: rgba(13, 202, 240, 0.1);
+                }
+
+                #userDropdown + .dropdown-menu .dropdown-item:hover i.text-warning {
+                    background-color: rgba(255, 193, 7, 0.1);
+                }
+
+                #userDropdown + .dropdown-menu .dropdown-item:hover i.text-danger {
+                    background-color: rgba(220, 53, 69, 0.1);
+                }
+
+        /* UPDATED: Notifications Dropdown Menu - Enhanced Style */
+        #notifDropdown + .dropdown-menu {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 8px 0;
+            margin-top: 4px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            min-width: 350px;
+        }
+
+            #notifDropdown + .dropdown-menu .dropdown-header {
+                padding: 12px 16px 8px 16px;
+                font-size: 16px;
+                font-weight: 600;
+                color: #212529;
+                margin-bottom: 0;
+            }
+
+            #notifDropdown + .dropdown-menu .dropdown-divider {
+                margin: 8px 0;
+                border-color: #e9ecef;
+            }
+
+            #notifDropdown + .dropdown-menu > li:last-child .dropdown-item {
+                font-weight: 500;
+                color: #007bff !important;
+                text-align: center;
+                padding: 12px 16px;
+                border-radius: 0 0 8px 8px;
+            }
+
+                #notifDropdown + .dropdown-menu > li:last-child .dropdown-item:hover {
+                    background-color: rgba(13, 110, 253, 0.1);
+                }
+
+        .dropdown-menu .notification-item {
+            padding: 8px 12px !important;
+            margin: 0 !important;
+            border: none !important;
+            border-radius: 0 !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            min-height: auto !important;
+            height: auto !important;
+            display: block !important;
+            flex-direction: row !important;
+        }
+
+            .dropdown-menu .notification-item:hover {
+                background-color: #f8f9fa !important;
+                transform: none !important;
+                box-shadow: none !important;
+                border-color: transparent !important;
+            }
+
+            /* Ensure notification content doesn't have extra spacing */
+            .dropdown-menu .notification-item .d-flex {
+                align-items: flex-start !important;
+                gap: 0 !important;
+            }
+
+            .dropdown-menu .notification-item .notification-icon {
+                width: 32px !important;
+                height: 32px !important;
+                margin-right: 8px !important;
+                flex-shrink: 0 !important;
+            }
+
+            .dropdown-menu .notification-item .flex-grow-1 {
+                min-width: 0 !important;
+                flex: 1 !important;
+            }
+
+                .dropdown-menu .notification-item .flex-grow-1 > div {
+                    margin-bottom: 2px !important;
+                    line-height: 1.2 !important;
+                }
+
+                    .dropdown-menu .notification-item .flex-grow-1 > div:last-child {
+                        margin-bottom: 0 !important;
+                    }
+
+            /* Override any conflicting styles from the notifications page */
+            .dropdown-menu .notification-item.unread,
+            .dropdown-menu .notification-item.read {
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                transform: none !important;
+                cursor: pointer !important;
+                transition: background-color 0.2s ease !important;
+            }
+
+            .dropdown-menu .notification-item.notification-unread {
+                background-color: #e3f2fd !important;
+                border-left: 4px solid #2196f3 !important;
+            }
+
+            /* Ensure proper text sizing in dropdown */
+            .dropdown-menu .notification-item .fw-bold,
+            .dropdown-menu .notification-item .fw-normal {
+                font-size: 13px !important;
+                font-weight: 500 !important;
+            }
+
+            .dropdown-menu .notification-item .text-muted {
+                font-size: 12px !important;
+            }
+
+            .dropdown-menu .notification-item .text-secondary {
+                font-size: 11px !important;
+            }
+    </style>
 </head>
+
 <body>
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow mb-3">
@@ -277,7 +512,7 @@
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item d-flex align-items-center py-2 px-3" asp-controller="UserConcession" asp-action="Index">
+                            <a class="dropdown-item d-flex align-items-center py-2 px-3" asp-controller="UserConcessions" asp-action="Index">
                                 <div class="nav-icon-wrapper me-3">
                                     <i class="bi bi-cup-straw text-secondary"></i>
                                 </div>
@@ -311,32 +546,32 @@
                     @if (isAuthenticated)
                     {
                         <!-- Messages Icon -->
-                        <li class="nav-item me-3">
+                        <li class="nav-item me-2">
                             @if (role == "User")
                             {
-                                <a class="nav-link nav-link-with-badge" asp-controller="UserMessages" asp-action="UserMessages" title="Messages">
-                                    <i class="bi bi-envelope fs-5"></i>
+                                <a class="nav-icon messages-icon nav-link-with-badge" asp-controller="UserMessages" asp-action="UserMessages" title="Messages">
+                                    <i class="bi bi-envelope"></i>
                                     <span class="nav-badge" id="messages-badge" style="display: none;">0</span>
                                 </a>
                             }
                             else if (role == "Admin" || role == "Staff")
                             {
-                                <a class="nav-link nav-link-with-badge" asp-controller="UserMessages" asp-action="StaffMessages" title="Staff Messages">
-                                    <i class="bi bi-envelope fs-5"></i>
+                                <a class="nav-icon messages-icon nav-link-with-badge" asp-controller="UserMessages" asp-action="StaffMessages" title="Staff Messages">
+                                    <i class="bi bi-envelope"></i>
                                     <span class="nav-badge" id="messages-badge" style="display: none;">0</span>
                                 </a>
                             }
                         </li>
 
                         <!-- Notifications -->
-                        <li class="nav-item dropdown me-3">
-                            <a class="nav-link dropdown-toggle nav-link-with-badge" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-bell fs-5"></i>
+                        <li class="nav-item dropdown me-2">
+                            <a class="nav-icon notifications-icon dropdown-toggle nav-link-with-badge" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-bell"></i>
                                 <span class="nav-badge" id="notif-badge" style="display: none;">
                                     <span id="notif-count">0</span>
                                 </span>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdown" style="min-width: 350px;">
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdown">
                                 <li><h6 class="dropdown-header">Notifications</h6></li>
                                 <li id="notif-loading" class="text-center text-muted">Loading...</li>
                                 <li id="notif-end"><hr class="dropdown-divider"></li>
@@ -347,27 +582,74 @@
 
                     <!-- User Dropdown -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle fs-4"></i>
+                        <a class="nav-icon user-icon dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             @if (!isAuthenticated)
                             {
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Login">Login</a></li>
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Signup">Sign Up</a></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Account" asp-action="Login">
+                                        <i class="bi bi-box-arrow-in-right text-success"></i>
+                                        <span>Login</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Account" asp-action="Signup">
+                                        <i class="bi bi-person-plus text-primary"></i>
+                                        <span>Sign Up</span>
+                                    </a>
+                                </li>
                             }
                             else if (role == "User")
                             {
-                                <li><a class="dropdown-item" asp-controller="UserProfile" asp-action="Index">User Info</a></li>
-                                <li><a class="dropdown-item" asp-controller="UserWatchlist" asp-action="MyWatchlist">My Watchlist</a></li>
-                                <li><a class="dropdown-item" asp-controller="UserTickets" asp-action="UserTickets">Tickets History</a></li>
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout" id="logoutLink">Logout</a></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="UserProfile" asp-action="Index">
+                                        <i class="bi bi-person text-primary"></i>
+                                        <span>User Info</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="UserWatchlist" asp-action="MyWatchlist">
+                                        <i class="bi bi-bookmark-heart text-success"></i>
+                                        <span>My Watchlist</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="UserTickets" asp-action="UserTickets">
+                                        <i class="bi bi-ticket-perforated text-info"></i>
+                                        <span>Tickets History</span>
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Account" asp-action="Logout" id="logoutLink">
+                                        <i class="bi bi-box-arrow-right text-danger"></i>
+                                        <span>Logout</span>
+                                    </a>
+                                </li>
                             }
                             else if (role == "Admin")
                             {
-                                <li><a class="dropdown-item" asp-controller="UserProfile" asp-action="AdminProfile">Admin Info</a></li>
-                                <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">Admin Dashboard</a></li>
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout" id="logoutLink">Logout</a></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="AdminProfile" asp-action="Index">
+                                        <i class="bi bi-person-gear text-primary"></i>
+                                        <span>Admin Info</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Admin" asp-action="Index">
+                                        <i class="bi bi-speedometer2 text-warning"></i>
+                                        <span>Admin Dashboard</span>
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Account" asp-action="Logout" id="logoutLink">
+                                        <i class="bi bi-box-arrow-right text-danger"></i>
+                                        <span>Logout</span>
+                                    </a>
+                                </li>
                             }
                         </ul>
                     </li>
@@ -633,14 +915,24 @@
                 const isRead = this.getAttribute("data-is-read") === "true";
                 const notificationType = this.getAttribute("data-notification-type").replace(/\s+/g, '');
 
+                console.log(`🔔 Dropdown notification clicked: ID=${notificationId}, Type=${notificationType}, URL=${targetUrl}`);
+
+                // Mark as read first if unread
                 if (notificationId && !isRead) {
                     try {
-                        const response = await fetch(`/UserNotifications/MarkAsRead?notificationId=${notificationId}`, {
+                        const response = await fetch(`/UserNotifications/MarkAsRead`, {
                             method: "POST",
-                            headers: { 'Content-Type': 'application/json' }
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ notificationId: parseInt(notificationId) })
                         });
 
                         if (response.ok) {
+                            console.log("✅ Marked as read from dropdown:", notificationId);
+
+                            // Update UI immediately
                             this.classList.remove("notification-unread");
                             this.setAttribute("data-is-read", "true");
 
@@ -655,6 +947,7 @@
                                 titleElement.classList.add("fw-normal");
                             }
 
+                            // Update badge count
                             if (notifCount) {
                                 const currentCount = parseInt(notifCount.textContent) || 0;
                                 const newCount = Math.max(0, currentCount - 1);
@@ -669,9 +962,11 @@
                     }
                 }
 
+                // Always redirect for these types, regardless of read status
                 const shouldRedirect = ["NewMessage", "OrderStatusUpdate"].includes(notificationType);
                 if (shouldRedirect && targetUrl && targetUrl !== "#") {
-                    setTimeout(() => window.location.href = targetUrl, 300);
+                    console.log("➡️ Redirecting from dropdown to:", targetUrl);
+                    setTimeout(() => window.location.href = targetUrl, 200);
                 }
             }
         });

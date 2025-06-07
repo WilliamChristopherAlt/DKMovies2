@@ -8,12 +8,12 @@ using DKMovies.Models.Data.DatabaseModels;
 
 namespace Controllers.Admin
 {
-    public class AdminShowTimeController : Controller
+    public class AdminShowTimesController : Controller
     {
         private readonly ApplicationDbContext _context;
         private const int PageSize = 12; // Show 12 showtimes per page (good for grid layout)
 
-        public AdminShowTimeController(ApplicationDbContext context)
+        public AdminShowTimesController(ApplicationDbContext context)
         {
             _context = context;
         }

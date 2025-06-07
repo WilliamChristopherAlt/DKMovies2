@@ -14,6 +14,7 @@ using System.Net;
 
 using DKMovies.Models.Data;
 using DKMovies.Models.Data.DatabaseModels;
+using DKMovies.Models.ViewModels;
 
 namespace DKMovies.Controllers
 {
@@ -72,23 +73,22 @@ namespace DKMovies.Controllers
         {
             var fromAddress = new MailAddress("ducn3683@gmail.com", "DKMovies");
             var toAddress = new MailAddress(toEmail);
-            const string fromPassword = "ubuj nryh dbrf mrcd"; // Không có dấu cách nếu bạn 
-            string subject = "🎬 DKMovies - Xác nhận tài khoản";
+            const string fromPassword = "ubuj nryh dbrf mrcd"; // App password (no spaces)
+            string subject = "🎬 DKMovies - Account Confirmation";
             string body = $@"
-                <html>
-                <body style='font-family: Arial, sans-serif;'>
-                    <h2 style='color:#2c3e50;'>Xác nhận đăng ký DKMovies</h2>
-                    <p>Xin chào,</p>
-                    <p>Cảm ơn bạn đã đăng ký tài khoản tại <strong>DKMovies</strong>.</p>
-                    <p style='font-size:18px;'>
-                        🔐 Mã xác nhận của bạn là:<br />
-                        <span style='font-size:24px; font-weight:bold; color:#2ecc71;'>{code}</span>
-                    </p>
-                    <p>Mã này có hiệu lực trong vài phút. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
-                    <p>Trân trọng,<br />Đội ngũ DKMovies</p>
-                </body>
-                </html>";
-
+        <html>
+        <body style='font-family: Arial, sans-serif;'>
+            <h2 style='color:#2c3e50;'>Confirm Your DKMovies Registration</h2>
+            <p>Hello,</p>
+            <p>Thank you for registering an account with <strong>DKMovies</strong>.</p>
+            <p style='font-size:18px;'>
+                🔐 Your confirmation code is:<br />
+                <span style='font-size:24px; font-weight:bold; color:#2ecc71;'>{code}</span>
+            </p>
+            <p>This code is valid for a few minutes. Please do not share it with anyone.</p>
+            <p>Best regards,<br />The DKMovies Team</p>
+        </body>
+        </html>";
 
             var smtp = new SmtpClient
             {
@@ -106,8 +106,8 @@ namespace DKMovies.Controllers
                 IsBodyHtml = true
             })
             {
-                await smtp.SendMailAsync(message);            }
-
+                await smtp.SendMailAsync(message);
+            }
         }
 
         [HttpGet]
@@ -183,16 +183,53 @@ namespace DKMovies.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(string username, string password, bool dummy)
+        public async Task<IActionResult> Login(LoginViewModel model)
         {
-            var hashedPassword = HashPassword(password);
-            string ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"; ;
+            if (!ModelState.IsValid)
+            {
+                ViewBag.ActiveTab = "login";
+                return View(model);
+            }
+
+            var hashedPassword = HashPassword(model.Password);
+            string ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
             DateTime attemptTime = DateTime.UtcNow;
 
             // Try Users first
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == model.Username || u.Email == model.Username);
             if (user != null && user.PasswordHash == hashedPassword)
             {
+                // Check if email is confirmed
+                if (!user.EmailConfirmed)
+                {
+                    ModelState.AddModelError(string.Empty, "⚠️ Please verify your email before logging in.");
+                    ViewBag.ActiveTab = "login";
+                    return View(model);
+                }
+
+                // Handle Remember Me - Store credentials in cookies if checked
+                if (model.RememberMe)
+                {
+                    var cookieOptions = new CookieOptions
+                    {
+                        Expires = DateTimeOffset.UtcNow.AddDays(30),
+                        HttpOnly = false, // Allow JavaScript access for form population
+                        Secure = Request.IsHttps,
+                        SameSite = SameSiteMode.Strict
+                    };
+
+                    Response.Cookies.Append("RememberedUsername", model.Username, cookieOptions);
+                    Response.Cookies.Append("RememberedPassword", model.Password, cookieOptions); // Note: Consider security implications
+                    Response.Cookies.Append("RememberMe", "true", cookieOptions);
+                }
+                else
+                {
+                    // Clear remember me cookies if not checked
+                    Response.Cookies.Delete("RememberedUsername");
+                    Response.Cookies.Delete("RememberedPassword");
+                    Response.Cookies.Delete("RememberMe");
+                }
+
                 // Check if login from new IP
                 bool isNewDevice = !await _context.LoginAttempts.AnyAsync(a => a.UserID == user.ID && a.IPAddress == ipAddress);
 
@@ -229,18 +266,41 @@ namespace DKMovies.Controllers
                 var claimsIdentity = new ClaimsIdentity(claims, "MyCookieAuth");
                 var authProperties = new AuthenticationProperties
                 {
-                    IsPersistent = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
+                    IsPersistent = model.RememberMe,
+                    ExpiresUtc = model.RememberMe ? DateTimeOffset.UtcNow.AddDays(30) : DateTimeOffset.UtcNow.AddHours(1)
                 };
 
                 await HttpContext.SignInAsync("MyCookieAuth", new ClaimsPrincipal(claimsIdentity), authProperties);
+                TempData["ToastSuccess"] = "🎉 Login successful!";
                 return RedirectToAction("Index", "UserMovies");
             }
 
             // Try Admins
-            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Username == username);
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Username == model.Username);
             if (admin != null && admin.PasswordHash == hashedPassword)
             {
+                // Handle Remember Me for Admin
+                if (model.RememberMe)
+                {
+                    var cookieOptions = new CookieOptions
+                    {
+                        Expires = DateTimeOffset.UtcNow.AddDays(30),
+                        HttpOnly = false,
+                        Secure = Request.IsHttps,
+                        SameSite = SameSiteMode.Strict
+                    };
+
+                    Response.Cookies.Append("RememberedUsername", model.Username, cookieOptions);
+                    Response.Cookies.Append("RememberedPassword", model.Password, cookieOptions);
+                    Response.Cookies.Append("RememberMe", "true", cookieOptions);
+                }
+                else
+                {
+                    Response.Cookies.Delete("RememberedUsername");
+                    Response.Cookies.Delete("RememberedPassword");
+                    Response.Cookies.Delete("RememberMe");
+                }
+
                 bool isNewDevice = !await _context.LoginAttempts.AnyAsync(a => a.AdminID == admin.ID && a.IPAddress == ipAddress);
 
                 // Log attempt
@@ -276,20 +336,25 @@ namespace DKMovies.Controllers
                 var claimsIdentity = new ClaimsIdentity(claims, "MyCookieAuth");
                 var authProperties = new AuthenticationProperties
                 {
-                    IsPersistent = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
+                    IsPersistent = model.RememberMe,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
                 };
 
                 await HttpContext.SignInAsync("MyCookieAuth", new ClaimsPrincipal(claimsIdentity), authProperties);
-                return RedirectToAction("Index", "UserMovies");
+                TempData["ToastSuccess"] = "🎉 Login successful!";
+                return RedirectToAction("Index", "Admin");
             }
 
-            await _context.SaveChangesAsync();
+            // Clear remember me cookies on failed login
+            Response.Cookies.Delete("RememberedUsername");
+            Response.Cookies.Delete("RememberedPassword");
+            Response.Cookies.Delete("RememberMe");
 
-            ModelState.AddModelError(string.Empty, "Invalid username or password.");
-            return View();
+            // Add error message (no longer logging failed attempts)
+            ModelState.AddModelError(string.Empty, "❌ Invalid username or password.");
+            ViewBag.ActiveTab = "login";
+            return View(model);
         }
-
 
         [HttpGet]
         public IActionResult Verify2FA()
@@ -305,7 +370,7 @@ namespace DKMovies.Controllers
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
             if (user == null || !user.TwoFactorEnabled)
             {
-                ModelState.AddModelError("", "Tài khoản không hợp lệ hoặc chưa bật 2FA.");
+                ModelState.AddModelError("", "Invalid account or 2FA not enabled.");
                 return View();
             }
 
@@ -318,38 +383,35 @@ namespace DKMovies.Controllers
                 var rememberMe = TempData["RememberMe"] != null && bool.TryParse(TempData["RememberMe"].ToString(), out var r) && r;
                 await SignInUser(user, rememberMe);
 
-                TempData["ToastSuccess"] = "🎉 Đăng nhập thành công!";
+                TempData["ToastSuccess"] = "🎉 Login successful!";
                 return RedirectToAction("Index", "UserMovies");
             }
 
-            ModelState.AddModelError("", "Mã xác nhận không hợp lệ hoặc đã hết hạn.");
+            ModelState.AddModelError("", "Invalid or expired verification code.");
             ViewBag.Email = TempData["Email2FA"] ?? TempData.Peek("Email2FA");
             return View();
         }
-
-
 
         private async Task Send2FACodeEmail(string toEmail, string code)
         {
             var fromAddress = new MailAddress("ducn3683@gmail.com", "DKMovies");
             var toAddress = new MailAddress(toEmail);
-            const string fromPassword = "ubuj nryh dbrf mrcd"; // Không có dấu cách nếu bạn 
-            string subject = "🎬 DKMovies - Xác nhận tài khoản";
+            const string fromPassword = "ubuj nryh dbrf mrcd"; // No spaces if you 
+            string subject = "🎬 DKMovies - Account Verification";
             string body = $@"
-                <html>
-                <body style='font-family: Arial, sans-serif;'>
-                    <h2 style='color:#2c3e50;'>Xác nhận đăng ký DKMovies</h2>
-                    <p>Xin chào,</p>
-                    <p>Cảm ơn bạn đã đăng ký tài khoản tại <strong>DKMovies</strong>.</p>
-                    <p style='font-size:18px;'>
-                        🔐 Mã xác nhận của bạn là:<br />
-                        <span style='font-size:24px; font-weight:bold; color:#2ecc71;'>{code}</span>
-                    </p>
-                    <p>Mã này có hiệu lực trong vài phút. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
-                    <p>Trân trọng,<br />Đội ngũ DKMovies</p>
-                </body>
-                </html>";   
-
+        <html>
+        <body style='font-family: Arial, sans-serif;'>
+            <h2 style='color:#2c3e50;'>DKMovies Registration Confirmation</h2>
+            <p>Hello,</p>
+            <p>Thank you for registering an account with <strong>DKMovies</strong>.</p>
+            <p style='font-size:18px;'>
+                🔐 Your verification code is:<br />
+                <span style='font-size:24px; font-weight:bold; color:#2ecc71;'>{code}</span>
+            </p>
+            <p>This code is valid for a few minutes. Please do not share this code with anyone.</p>
+            <p>Best regards,<br />The DKMovies Team</p>
+        </body>
+        </html>";
 
             var smtp = new SmtpClient
             {
@@ -371,7 +433,6 @@ namespace DKMovies.Controllers
             }
         }
 
-
         [HttpGet("Account/Signup")]
         public IActionResult Signup()
         {
@@ -383,42 +444,75 @@ namespace DKMovies.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SignUp(string username, string email, string password,
-                            string fullName, string phone,
-                            DateTime? birthDate, string gender)
+                           string fullName, string phone,
+                           DateTime? birthDate, string gender)
         {
-            if (await _context.Users.AnyAsync(u => u.Username == username))
-            {
-                ModelState.AddModelError("username", "Username already exists.");
-            }
-
-            if (await _context.Users.AnyAsync(u => u.Email == email))
-            {
-                ModelState.AddModelError("email", "Email is already in use.");
-            }
-
             ViewBag.ActiveTab = "register";
-            if (!ModelState.IsValid)
+
+            // Store form data in ViewBag to repopulate fields
+            ViewBag.RegUsername = username;
+            ViewBag.RegEmail = email;
+            ViewBag.RegFullName = fullName;
+            ViewBag.RegPhone = phone;
+            ViewBag.RegBirthDate = birthDate?.ToString("yyyy-MM-dd");
+            ViewBag.RegGender = gender;
+
+            // Basic validation
+            if (string.IsNullOrEmpty(username))
             {
+                ViewData["ToastError"] = "Username is required.";
                 return View("Login");
             }
-
-
-            // Tạo mã xác nhận
+            if (string.IsNullOrEmpty(email))
+            {
+                ViewData["ToastError"] = "Email is required.";
+                return View("Login");
+            }
+            if (string.IsNullOrEmpty(password))
+            {
+                ViewData["ToastError"] = "Password is required.";
+                return View("Login");
+            }
+            if (password.Length < 6)
+            {
+                ViewData["ToastError"] = "Password must be at least 6 characters.";
+                return View("Login");
+            }
+            if (string.IsNullOrEmpty(fullName))
+            {
+                ViewData["ToastError"] = "Full name is required.";
+                return View("Login");
+            }
+            if (string.IsNullOrEmpty(gender))
+            {
+                ViewData["ToastError"] = "Please select a gender.";
+                return View("Login");
+            }
+            // Check for existing username
+            if (await _context.Users.AnyAsync(u => u.Username == username))
+            {
+                ViewData["ToastError"] = "Username already exists.";
+                return View("Login");
+            }
+            // Check for existing email
+            if (await _context.Users.AnyAsync(u => u.Email == email))
+            {
+                ViewData["ToastError"] = "Email is already in use.";
+                return View("Login");
+            }
+            // Generate confirmation code
             string confirmationCode = new Random().Next(100000, 999999).ToString();
-
-            // Gửi email xác nhận
+            // Send confirmation email
             try
             {
                 await SendConfirmationEmail(email, confirmationCode);
             }
             catch (Exception)
             {
-                ViewData["ToastError"] = "Không thể gửi email xác nhận. Vui lòng thử lại sau.";
-                ViewBag.ActiveTab = "register";
+                ViewData["ToastError"] = "Cannot send confirmation email. Please try again later.";
                 return View("Login");
             }
-
-            // Tạo user nếu gửi email thành công
+            // Create user if email sent successfully
             var user = new User
             {
                 Username = username,
@@ -432,15 +526,11 @@ namespace DKMovies.Controllers
                 EmailConfirmed = false,
                 ConfirmationCode = confirmationCode
             };
-
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-
             TempData["EmailToVerify"] = email;
             return RedirectToAction("VerifyEmail");
         }
-
-
 
         [HttpGet]
         public IActionResult VerifyEmail()
@@ -455,7 +545,7 @@ namespace DKMovies.Controllers
         {
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(code))
             {
-                ViewData["ToastError"] = "Vui lòng điền đầy đủ thông tin.";
+                ViewData["ToastError"] = "Please fill in all required information.";
                 ViewBag.Email = email;
                 return View();
             }
@@ -464,14 +554,14 @@ namespace DKMovies.Controllers
 
             if (user == null)
             {
-                ViewData["ToastError"] = "Tài khoản không tồn tại.";
+                ViewData["ToastError"] = "Account does not exist.";
                 ViewBag.Email = email;
                 return View();
             }
 
             if (user.EmailConfirmed)
             {
-                TempData["ToastSuccess"] = "Email đã được xác minh trước đó.";
+                TempData["ToastSuccess"] = "Email has already been verified previously.";
                 return RedirectToAction("Login");
             }
 
@@ -479,14 +569,14 @@ namespace DKMovies.Controllers
             {
                 try
                 {
-                    // Cập nhật trạng thái xác nhận email
+                    // Update email confirmation status
                     user.EmailConfirmed = true;
                     user.ConfirmationCode = null;
 
-                    // Đảm bảo Entity Framework theo dõi thay đổi
+                    // Ensure Entity Framework tracks changes
                     _context.Entry(user).State = EntityState.Modified;
 
-                    // Lưu thay đổi và kiểm tra kết quả
+                    // Save changes and check result
                     var result = await _context.SaveChangesAsync();
 
                     if (result > 0)
@@ -500,53 +590,35 @@ namespace DKMovies.Controllers
                         );
 
                         await _context.SaveChangesAsync(); // Save the notification
-                        TempData["ToastSuccess"] = "✅ Xác minh thành công! Bạn có thể đăng nhập.";
+                        TempData["ToastSuccess"] = "✅ Verification successful! You can now log in.";
                         return RedirectToAction("Login");
                     }
                     else
                     {
-                        ViewData["ToastError"] = "❌ Có lỗi xảy ra khi lưu thông tin. Vui lòng thử lại.";
+                        ViewData["ToastError"] = "❌ An error occurred while saving information. Please try again.";
                         ViewBag.Email = email;
                         return View();
                     }
                 }
                 catch (Exception ex)
                 {
-                    // Log lỗi để debug
-                    // Bạn có thể log ex.Message để xem lỗi cụ thể
-                    ViewData["ToastError"] = "❌ Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.";
+                    // Log error for debugging
+                    // You can log ex.Message to see specific error
+                    ViewData["ToastError"] = "❌ An error occurred while updating information. Please try again.";
                     ViewBag.Email = email;
                     return View();
                 }
             }
 
-            ViewData["ToastError"] = "❌ Mã xác nhận không chính xác hoặc đã hết hạn.";
+            ViewData["ToastError"] = "❌ Verification code is incorrect or has expired.";
             ViewBag.Email = email;
-            return View();
-        }
-
-        [HttpGet]
-        public IActionResult AdminLogin() => View();
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AdminLogin(string username, string password)
-        {
-            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Username == username);
-            if (admin != null && admin.PasswordHash == HashPassword(password))
-            {
-                HttpContext.Session.SetString("Username", admin.Username);
-                HttpContext.Session.SetString("UserID", admin.ID.ToString());
-                HttpContext.Session.SetString("Role", "Admin");
-                return RedirectToAction("Index", "Admin");
-            }
-            ModelState.AddModelError("", "Tên đăng nhập hoặc mật khẩu không hợp lệ.");
             return View();
         }
 
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync("MyCookieAuth");
+            TempData["ToastSuccess"] = "🎉 Logged out successfully!";
             return RedirectToAction("Login", "Account");
         }
     }

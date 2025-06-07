@@ -329,7 +329,7 @@
             <div class="nav-section-title">Overview</div>
             <div class="nav-item">
                 <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Admins" ? "active" : "")"
-                   href="@Url.Action("Index", "Admins")">
+                   href="@Url.Action("Index", "Admin")">
                     <i class="fas fa-tachometer-alt nav-icon"></i>
                     <span class="nav-text">Dashboard</span>
                 </a>
@@ -337,57 +337,57 @@
 
             <div class="nav-section-title">Management</div>
             <div class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminMovie" ? "active" : "")"
-                   href="@Url.Action("Index", "AdminMovie")">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminMovies" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminMovies")">
                     <i class="fas fa-film nav-icon"></i>
                     <span class="nav-text">Movies</span>
                 </a>
             </div>
             <div class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminActor" ? "active" : "")"
-                   href="@Url.Action("Index", "AdminActor")">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminActors" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminActors")">
                     <i class="fas fa-user-circle nav-icon"></i>
                     <span class="nav-text">Actors</span>
                 </a>
             </div>
             <div class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminDirector" ? "active" : "")"
-                   href="@Url.Action("Index", "AdminDirector")">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminDirectors" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminDirectors")">
                     <i class="fas fa-video nav-icon"></i>
                     <span class="nav-text">Directors</span>
                 </a>
             </div>
             <div class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminTheater" ? "active" : "")"
-                   href="@Url.Action("Index", "AdminTheater")">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminTheaters" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminTheaters")">
                     <i class="fas fa-building nav-icon"></i>
                     <span class="nav-text">Theaters</span>
                 </a>
             </div>
             <div class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminShowTime" ? "active" : "")"
-                   href="@Url.Action("Index", "AdminShowTime")">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminShowTimes" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminShowTimes")">
                     <i class="fas fa-clock nav-icon"></i>
                     <span class="nav-text">Showtimes</span>
                 </a>
             </div>
             <div class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminUser" ? "active" : "")"
-                   href="@Url.Action("Index", "AdminUser")">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminUsers" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminUsers")">
                     <i class="fas fa-users nav-icon"></i>
                     <span class="nav-text">Users</span>
                 </a>
             </div>
             <div class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminEmployee" ? "active" : "")"
-                   href="@Url.Action("Index", "AdminEmployee")">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminEmployees" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminEmployees")">
                     <i class="fas fa-user-tie nav-icon"></i>
                     <span class="nav-text">Employees</span>
                 </a>
             </div>
             <div class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminConcession" ? "active" : "")"
-                   href="@Url.Action("Index", "AdminConcession")">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminConcessions" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminConcessions")">
                     <i class="fas fa-utensils nav-icon"></i>
                     <span class="nav-text">Concessions</span>
                 </a>
@@ -395,8 +395,8 @@
 
             <div class="nav-section-title">Reports & Analytics</div>
             <div class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "MovieDashboard" ? "active" : "")"
-                   href="@Url.Action("MovieDashboard", "Admins")">
+                <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Dashboard" ? "active" : "")"
+                   href="@Url.Action("Dashboard", "Admin")">
                     <i class="fas fa-chart-line nav-icon"></i>
                     <span class="nav-text">Movie Statistics</span>
                 </a>
@@ -404,7 +404,7 @@
 
             <div class="nav-section-title">Other</div>
             <div class="nav-item">
-                <a class="nav-link" href="@Url.Action("Index", "MovieList")" target="_blank">
+                <a class="nav-link" href="@Url.Action("Index", "UserMovies")" target="_blank">
                     <i class="fas fa-external-link-alt nav-icon"></i>
                     <span class="nav-text">User Website</span>
                 </a>

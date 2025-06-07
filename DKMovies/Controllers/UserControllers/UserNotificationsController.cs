@@ -117,8 +117,6 @@ namespace Controllers.UserController
         {
             try
             {
-                Console.WriteLine($"MarkAsRead called with notificationId: {request.NotificationId}");
-
                 var userId = GetCurrentUserId();
                 var userRole = GetCurrentUserRole();
 

@@ -692,13 +692,11 @@
                     map.removeLayer(currentTileLayer);
                     currentTileLayer = lightTileLayer;
                     currentTileLayer.addTo(map);
-
-                    // Update button styles
-                    lightBtn.style.background = '#0d6efd';
-                    lightBtn.style.color = 'white';
-                    satelliteBtn.style.background = '#f8f9fa';
-                    satelliteBtn.style.color = 'black';
                 }
+
+                // Update button classes
+                lightBtn.classList.add('active');
+                satelliteBtn.classList.remove('active');
             });
 
             satelliteBtn.addEventListener('click', function() {
@@ -706,13 +704,11 @@
                     map.removeLayer(currentTileLayer);
                     currentTileLayer = satelliteTileLayer;
                     currentTileLayer.addTo(map);
-
-                    // Update button styles
-                    satelliteBtn.style.background = '#0d6efd';
-                    satelliteBtn.style.color = 'white';
-                    lightBtn.style.background = '#f8f9fa';
-                    lightBtn.style.color = 'black';
                 }
+
+                // Update button classes
+                satelliteBtn.classList.add('active');
+                lightBtn.classList.remove('active');
             });
         }
     }
