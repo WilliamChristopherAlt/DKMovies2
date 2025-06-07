@@ -4,8 +4,8 @@
 using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Options;
-using DKMovies.Models;
 using DKMovies.ViewModels;
+using DKMovies.Models.Data.DatabaseModels;
 
 namespace DKMovies.Services
 {

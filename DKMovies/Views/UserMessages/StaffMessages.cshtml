@@ -1,0 +1,586 @@
+﻿@using DKMovies.Models.Data.DatabaseModels;
+@model Tuple<List<DKMovies.Models.ViewModels.UserMessagePreview>, List<Message>>
+
+@{
+    var users = Model.Item1;
+    var messages = Model.Item2;
+    var currentUser = ViewBag.CurrentUser as User;
+    var lastReadUserMessageTime = ViewBag.LastReadUserMessageTime as DateTime?;
+    ViewBag.Title = "Staff Messages";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+<style>
+    .staff-chat-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+        display: flex;
+        height: 600px;
+    }
+
+    .users-sidebar {
+        width: 320px;
+        background: #f8f9fa;
+        border-right: 1px solid #dee2e6;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .sidebar-header {
+        padding: 1.5rem 1.5rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+        .sidebar-header h3 {
+            margin: 0 0 0.5rem 0;
+            color: #212529;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .sidebar-header p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+    .search-box {
+        padding: 0 1.5rem 1rem;
+    }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+            .search-box input:focus {
+                outline: none;
+                border-color: #007bff;
+                box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+            }
+
+    .users-list {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .user-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+        border-bottom: 1px solid #e9ecef;
+        text-decoration: none;
+        color: #212529;
+        transition: background-color 0.15s ease-in-out;
+        position: relative;
+    }
+
+        .user-item:hover {
+            background: #e9ecef;
+            color: #212529;
+            text-decoration: none;
+        }
+
+        .user-item.active {
+            background: #007bff;
+            color: white;
+        }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 1rem;
+        object-fit: cover;
+    }
+
+    .user-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .user-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .last-message {
+        font-size: 0.8rem;
+        opacity: 0.7;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .unread-badge {
+        background: #dc3545;
+        color: white;
+        border-radius: 10px;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        min-width: 20px;
+        text-align: center;
+    }
+
+    .chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #dee2e6;
+        background: #f8f9fa;
+    }
+
+        .chat-header h3 {
+            margin: 0;
+            color: #212529;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .chat-header p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+    .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .message {
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .message-bubble {
+        max-width: 70%;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        word-break: break-word;
+    }
+
+    .message.user {
+        align-items: flex-start;
+    }
+
+        .message.user .message-bubble {
+            background: #f8f9fa;
+            color: #212529;
+            border: 1px solid #dee2e6;
+            border-bottom-left-radius: 4px;
+        }
+
+    .message.admin {
+        align-items: flex-end;
+    }
+
+        .message.admin .message-bubble {
+            background: #007bff;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+    .message-time {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+
+    .message.user .message-time {
+        text-align: left;
+    }
+
+    .message.admin .message-time {
+        text-align: right;
+    }
+
+    .new-messages-line {
+        display: flex;
+        align-items: center;
+        margin: 1.5rem 0;
+        text-align: center;
+    }
+
+        .new-messages-line::before,
+        .new-messages-line::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #dc3545;
+        }
+
+    .new-messages-text {
+        padding: 0 1rem;
+        background: white;
+        color: #dc3545;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+    }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+    .no-selection {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #6c757d;
+        text-align: center;
+    }
+
+        .no-selection i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+    .input-section {
+        padding: 1.5rem 2rem;
+        background: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .input-form {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-end;
+    }
+
+    .input-wrapper {
+        flex: 1;
+        position: relative;
+    }
+
+    .input-form textarea {
+        width: 100%;
+        border: 1px solid #ced4da;
+        border-radius: 20px;
+        padding: 0.75rem 2.5rem 0.75rem 1rem;
+        font-size: 0.9rem;
+        resize: none;
+        min-height: 44px;
+        max-height: 100px;
+        background: white;
+        transition: border-color 0.15s ease-in-out;
+    }
+
+        .input-form textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+        }
+
+    .char-counter {
+        position: absolute;
+        right: 0.75rem;
+        bottom: 0.5rem;
+        font-size: 0.7rem;
+        color: #adb5bd;
+        pointer-events: none;
+    }
+
+    .send-btn {
+        background: #007bff;
+        border: none;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.15s ease-in-out;
+    }
+
+        .send-btn:hover {
+            background: #0056b3;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+    @@media (max-width: 768px) {
+        .staff-chat-container
+
+    {
+        flex-direction: column;
+        height: auto;
+        margin: 1rem;
+    }
+
+    .users-sidebar {
+        width: 100%;
+        height: 200px;
+    }
+
+    .users-list {
+        max-height: 120px;
+    }
+
+    .chat-area {
+        height: 400px;
+    }
+
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <div class="staff-chat-container">
+        <!-- Users Sidebar -->
+        <div class="users-sidebar">
+            <div class="sidebar-header">
+                <h3>Customer Messages</h3>
+                <p>Manage support conversations</p>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search users..." />
+            </div>
+
+            <div class="users-list">
+                @if (users != null && users.Any())
+                {
+                    @foreach (var u in users)
+                    {
+                        var isActive = currentUser != null && currentUser.ID == u.User.ID;
+                        <a class="user-item @(isActive ? "active" : "")"
+                           href="@Url.Action("StaffMessages", "UserMessages", new { userId = u.User.ID })"
+                           data-username="@u.User.Username"
+                           data-fullname="@u.User.FullName"
+                           data-email="@u.User.Email">
+                            <img src="~/images/users/@(u.User.ProfileImagePath ?? "default.jpg")"
+                                 alt="@u.User.Username"
+                                 class="user-avatar" />
+                            <div class="user-info">
+                                <div class="user-name">@u.User.Username</div>
+                                <div class="last-message">
+                                    @if (u.LatestMessage != null)
+                                    {
+                                        @System.Text.Encoding.UTF8.GetString(u.LatestMessage)
+                                    }
+                                    else
+                                    {
+                                        <em>No messages yet</em>
+                                    }
+                                </div>
+                            </div>
+                            @if (u.UnreadCount > 0)
+                            {
+                                <span class="unread-badge">@u.UnreadCount</span>
+                            }
+                        </a>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-people"></i>
+                        <p>No users found</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area">
+            @if (currentUser != null)
+            {
+                <!-- Chat Header -->
+                <div class="chat-header">
+                    <h3>@currentUser.Username</h3>
+                    <p>@currentUser.FullName • @currentUser.Email</p>
+                </div>
+
+                <!-- Messages -->
+                <div class="messages-container" id="messagesBody">
+                    @if (messages == null || !messages.Any())
+                    {
+                        <div class="empty-state">
+                            <i class="bi bi-chat-dots"></i>
+                            <h5>No messages yet</h5>
+                            <p>Start the conversation by sending the first message!</p>
+                        </div>
+                    }
+                    else
+                    {
+                        bool hasShownNewMessagesLine = false;
+
+                        @foreach (var msg in messages)
+                        {
+                            var cssClass = msg.IsFromUser ? "user" : "admin";
+                            var content = System.Text.Encoding.UTF8.GetString(msg.MessageText);
+
+                            // Show "new messages" line before the first unread user message
+                            @if (!hasShownNewMessagesLine && msg.IsFromUser &&
+                           (lastReadUserMessageTime == null || msg.SentAt > lastReadUserMessageTime))
+                            {
+                                <div class="new-messages-line">
+                                    <span class="new-messages-text">New Messages</span>
+                                </div>
+                                hasShownNewMessagesLine = true;
+                            }
+
+                            <div class="message @cssClass">
+                                <div class="message-bubble">
+                                    <div class="message-content">@content</div>
+                                </div>
+                                <div class="message-time">@msg.SentAt.ToString("HH:mm - MM/dd")</div>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Input -->
+                <div class="input-section">
+                    <form asp-action="StaffSend" method="post" class="input-form" id="messageForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="userId" value="@currentUser.ID" />
+                        <div class="input-wrapper">
+                            <textarea name="messageText"
+                                      id="messageInput"
+                                      placeholder="Type your reply..."
+                                      required
+                                      maxlength="1000"></textarea>
+                            <div class="char-counter">
+                                <span id="charCount">0</span>/1000
+                            </div>
+                        </div>
+                        <button type="submit" class="send-btn" id="sendButton" title="Send message">
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <div class="no-selection">
+                    <i class="bi bi-chat-square-text"></i>
+                    <h4>Select a conversation</h4>
+                    <p>Choose a user from the sidebar to view their messages</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const messagesBody = document.getElementById("messagesBody");
+        const messageInput = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+        const messageForm = document.getElementById("messageForm");
+        const charCount = document.getElementById("charCount");
+        const searchInput = document.getElementById("searchInput");
+        const userItems = document.querySelectorAll(".user-item");
+
+        // Auto-scroll to bottom
+        function scrollToBottom() {
+            if (messagesBody) {
+                messagesBody.scrollTop = messagesBody.scrollHeight;
+            }
+        }
+
+        // Character counter and auto-resize
+        if (messageInput && charCount) {
+            messageInput.addEventListener("input", function() {
+                const length = this.value.length;
+                charCount.textContent = length;
+
+                // Auto-resize textarea
+                this.style.height = "auto";
+                this.style.height = Math.min(this.scrollHeight, 100) + "px";
+            });
+        }
+
+        // Handle form submission
+        if (messageForm) {
+            messageForm.addEventListener("submit", function(e) {
+                const messageText = messageInput.value.trim();
+                if (!messageText) {
+                    e.preventDefault();
+                    return;
+                }
+
+                // Disable send button to prevent double submission
+                sendButton.disabled = true;
+                sendButton.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
+            });
+        }
+
+        // Enter to send (Shift+Enter for new line) - FIXED VERSION
+        if (messageInput) {
+            messageInput.addEventListener("keydown", function(e) {
+                if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+
+                    // Check if message is not empty
+                    const messageText = this.value.trim();
+                    if (messageText && !sendButton.disabled) {
+                        // Submit the form directly
+                        messageForm.submit();
+                    }
+                }
+            });
+
+            // Focus on input when page loads
+            messageInput.focus();
+        }
+
+        // Search functionality
+        if (searchInput && userItems.length > 0) {
+            searchInput.addEventListener("input", function() {
+                const keyword = this.value.toLowerCase().trim();
+
+                userItems.forEach(item => {
+                    const username = (item.dataset.username || "").toLowerCase();
+                    const fullname = (item.dataset.fullname || "").toLowerCase();
+                    const email = (item.dataset.email || "").toLowerCase();
+
+                    const matches = username.includes(keyword) ||
+                                   fullname.includes(keyword) ||
+                                   email.includes(keyword);
+
+                    item.style.display = matches ? "flex" : "none";
+                });
+            });
+        }
+
+        // Initial scroll to bottom
+        scrollToBottom();
+    });
+</script>

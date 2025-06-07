@@ -1,0 +1,737 @@
+﻿@using DKMovies.Models.Data.DatabaseModels;
+@model Theater
+
+@{
+    ViewData["Title"] = Model.Name + " - Theater Details";
+    var currentMovies = ViewBag.CurrentMovies as List<Movie> ?? new List<Movie>();
+    var theaterConcessions = ViewBag.TheaterConcessions as List<TheaterConcession> ?? new List<TheaterConcession>();
+    var googleMapsApiKey = ViewData["GoogleMapsApiKey"] as string ?? "";
+}
+
+<style>
+    :root {
+        --primary-color: #0d6efd;
+        --secondary-color: #6c757d;
+        --success-color: #28a745;
+        --danger-color: #dc3545;
+        --warning-color: #ffc107;
+        --info-color: #17a2b8;
+        --light-color: #f8f9fa;
+        --dark-color: #343a40;
+    }
+
+    body {
+        background-color: #f8f9fa;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .theater-header {
+        background: #2c3e50;
+        color: white;
+        padding: 3rem 0;
+        margin-bottom: 2rem;
+        position: relative;
+        border-bottom: 1px solid #e9ecef;
+        border-radius: 20px;
+    }
+
+        .theater-header .container {
+            padding-left: 2rem; /* Add left padding */
+            padding-right: 2rem; /* Add right padding for balance */
+        }
+
+        .theater-header::before {
+            display: none; /* Remove the overlay */
+        }
+
+    .theater-header-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .theater-title {
+        font-size: 3rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: white;
+    }
+
+    .theater-subtitle {
+        font-size: 1.2rem;
+        opacity: 0.85;
+        margin-bottom: 2rem;
+        color: #f8f9fa;
+    }
+
+
+    .info-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: none;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+    .section-title {
+        color: var(--dark-color);
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        border-bottom: 3px solid var(--primary-color);
+        padding-bottom: 0.5rem;
+        display: inline-block;
+    }
+
+    .theater-images {
+        margin-bottom: 2rem;
+    }
+
+    .image-carousel {
+        position: relative;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .carousel-image {
+        width: 100%;
+        height: 400px;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+        .carousel-image:hover {
+            transform: scale(1.05);
+        }
+
+    .theater-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .info-item {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1.5rem;
+        border-radius: 10px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+        .info-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+    .info-icon {
+        font-size: 2rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .info-value {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--dark-color);
+        margin-top: 0.5rem;
+    }
+
+    .map-container {
+        height: 400px;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .movies-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .movie-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+    .movie-poster {
+        width: 100%;
+        height: 280px;
+        object-fit: cover;
+    }
+
+    .movie-info {
+        padding: 1rem;
+    }
+
+    .movie-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--dark-color);
+        font-size: 1.1rem;
+    }
+
+    .movie-details {
+        font-size: 0.9rem;
+        color: var(--secondary-color);
+    }
+
+    .concessions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .concession-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+        .concession-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+    .concession-image {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+    }
+
+    .concession-info {
+        padding: 1.5rem;
+    }
+
+    .concession-name {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--dark-color);
+        font-size: 1.2rem;
+    }
+
+    .concession-description {
+        color: var(--secondary-color);
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .concession-price {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--success-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .stock-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .stock-available {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .stock-low {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .stock-out {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .back-button {
+        background: #ffffff;
+        color: #1a1a1a;
+        border: 1px solid #e9ecef;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        margin-left: 0.5rem; /* Add left margin for breathing room */
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+    }
+
+        .back-button:hover {
+            background: #f8f9fa;
+            color: #1a1a1a;
+            border-color: #dee2e6;
+            transform: none; /* Remove the lift effect */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-button:focus {
+            outline: 2px solid #0d6efd;
+            outline-offset: 2px;
+        }
+
+    .no-data {
+        text-align: center;
+        padding: 3rem;
+        color: var(--secondary-color);
+        font-size: 1.1rem;
+    }
+
+    .rating-badge {
+        background: linear-gradient(135deg, var(--warning-color) 0%, #e0a800 100%);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .duration-badge {
+        background: linear-gradient(135deg, var(--info-color) 0%, #138496 100%);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
+
+    .carousel-indicators {
+        bottom: 20px;
+    }
+
+        .carousel-indicators button {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin: 0 5px;
+        }
+
+    @@media (max-width: 768px) {
+        .theater-title
+
+    {
+        font-size: 2rem;
+    }
+
+    .theater-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .movies-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    .concessions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    }
+
+    .map-theme-btn:hover {
+        background: #e9ecef !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+    }
+
+    .map-theme-btn.active {
+        background: #0d6efd !important;
+        color: white !important;
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+
+
+<div class="container-fluid p-0">
+    <!-- Theater Header -->
+    <div class="theater-header">
+        <div class="container">
+            <div class="theater-header-content">
+                <a href="@Url.Action("Index", "UserTheaters")" class="back-button">
+                    <i class="bi bi-arrow-left"></i> Back to Theaters
+                </a>
+                <h1 class="theater-title">@Model.Name</h1>
+                <p class="theater-subtitle">
+                    <i class="bi bi-geo-alt-fill"></i> @Model.Location
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Theater Images -->
+        @if (Model.TheaterImages != null && Model.TheaterImages.Any())
+        {
+            <div class="theater-images">
+                <div id="theaterCarousel" class="carousel slide image-carousel" data-bs-ride="carousel">
+                    <div class="carousel-indicators">
+                        @for (int i = 0; i < Model.TheaterImages.Count(); i++)
+                        {
+                            <button type="button" data-bs-target="#theaterCarousel" data-bs-slide-to="@i"
+                                    class="@(i == 0 ? "active" : "")" aria-current="@(i == 0 ? "true" : "false")"
+                                    aria-label="Slide @(i + 1)"></button>
+                        }
+                    </div>
+                    <div class="carousel-inner">
+                        @for (int i = 0; i < Model.TheaterImages.Count(); i++)
+                        {
+                            var image = Model.TheaterImages.ElementAt(i);
+                            <div class="carousel-item @(i == 0 ? "active" : "")">
+                                <img src="@Url.Content("~/images/theaters/" + image.ImageUrl)"
+                                     onerror="this.onerror=null;this.src='/images/default_building.png';"
+                                     class="carousel-image" alt="@Model.Name">
+                            </div>
+                        }
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#theaterCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#theaterCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+            </div>
+        }
+
+        <!-- Theater Information -->
+        <div class="info-card">
+            <h2 class="section-title">Theater Information</h2>
+            <div class="theater-info-grid">
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="bi bi-geo-alt-fill"></i>
+                    </div>
+                    <div class="info-label">Location</div>
+                    <div class="info-value">@Model.Location</div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.Phone))
+                {
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="bi bi-telephone-fill"></i>
+                        </div>
+                        <div class="info-label">Phone</div>
+                        <div class="info-value">@Model.Phone</div>
+                    </div>
+                }
+
+                @if (Model.Auditoriums != null)
+                {
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="bi bi-camera-reels-fill"></i>
+                        </div>
+                        <div class="info-label">Auditoriums</div>
+                        <div class="info-value">@Model.Auditoriums.Count()</div>
+                    </div>
+                }
+
+                @if (Model.Auditoriums != null && Model.Auditoriums.Any())
+                {
+                    <div class="info-item">
+                        <div class="info-icon">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div class="info-label">Total Capacity</div>
+                        <div class="info-value">@Model.Auditoriums.Sum(a => a.Capacity)</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Map container -->
+        <div class="info-card">
+            <h2 class="section-title">Location Map</h2>
+            <div style="margin-bottom: 10px;">
+                <button id="lightMapBtn" class="map-theme-btn active" style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 8px 16px; border-radius: 5px; margin-right: 10px; cursor: pointer;">Light</button>
+                <button id="satelliteMapBtn" class="map-theme-btn" style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Satellite</button>
+            </div>
+            <div id="map" class="map-container" style="height: 400px; width: 100%; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"></div>
+        </div>
+
+        <!-- Currently Playing Movies -->
+        <div class="info-card">
+            <h2 class="section-title">Movies Playing Today</h2>
+            @if (currentMovies.Any())
+            {
+                <div class="movies-grid">
+                    @foreach (var movie in currentMovies)
+                    {
+                        <div class="movie-card">
+                            <img src="@(!string.IsNullOrEmpty(movie.PosterImagePath) ? Url.Content("~/images/movie_posters/" + movie.PosterImagePath) : "/images/default_movie.png")"
+                                 onerror="this.onerror=null;this.src='/images/default-movie-poster.jpg';"
+                                 alt="@movie.Title" class="movie-poster">
+                            <div class="movie-info">
+                                <div class="movie-title">@movie.Title</div>
+                                <div class="movie-details">
+                                    @if (movie.Rating != null)
+                                    {
+                                        <span class="rating-badge">@movie.Rating.Value</span>
+                                    }
+                                    @if (movie.DurationMinutes > 0)
+                                    {
+                                        <span class="duration-badge">@movie.DurationMinutes min</span>
+                                    }
+                                </div>
+                                @if (movie.Language != null)
+                                {
+                                    <div class="movie-details mt-2">
+                                        <small><i class="bi bi-translate"></i> @movie.Language.Name</small>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="no-data">
+                    <i class="bi bi-camera-reels" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <p>No movies are currently playing at this theater today.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Available Concessions -->
+        <div class="info-card">
+            <h2 class="section-title">Available Concessions</h2>
+            @if (theaterConcessions.Any())
+            {
+                <div class="concessions-grid">
+                    @foreach (var tc in theaterConcessions.Where(tc => tc.IsAvailable))
+                    {
+                        <div class="concession-card">
+                            <img src="@(!string.IsNullOrEmpty(tc.Concession.ImagePath) ? Url.Content("~/images/concessions/" + tc.Concession.ImagePath) : "/images/default-concession.jpg")"
+                                 onerror="this.onerror=null;this.src='/images/default-concession.jpg';"
+                                 alt="@tc.Concession.Name" class="concession-image">
+                            <div class="concession-info">
+                                <div class="concession-name">@tc.Concession.Name</div>
+                                @if (!string.IsNullOrEmpty(tc.Concession.Description))
+                                {
+                                    <div class="concession-description">@tc.Concession.Description</div>
+                                }
+                                <div class="concession-price">$@tc.Price.ToString("F2")</div>
+                                <div>
+                                    @if (tc.StockLeft > 10)
+                                    {
+                                        <span class="stock-badge stock-available">In Stock (@tc.StockLeft left)</span>
+                                    }
+                                    else if (tc.StockLeft > 0)
+                                    {
+                                        <span class="stock-badge stock-low">Low Stock (@tc.StockLeft left)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="stock-badge stock-out">Out of Stock</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="no-data">
+                    <i class="bi bi-cup-straw" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <p>No concessions are currently available at this theater.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+    const theaterLocation = '@Html.Raw(Html.Encode(Model.Location))';
+    const theaterName = '@Html.Raw(Html.Encode(Model.Name))';
+    const theaterPhone = '@Html.Raw(Html.Encode(Model.Phone ?? ""))';
+
+    let map;
+    let currentTileLayer;
+    let lightTileLayer;
+    let satelliteTileLayer;
+
+    // Get coordinates from your server
+    fetch('/UserTheaters/GeocodeLocation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: theaterLocation })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.lat && data.lng) {
+            // Create map
+            map = L.map('map').setView([data.lat, data.lng], 15);
+
+            // Define tile layers
+            lightTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap © CARTO'
+            });
+
+            satelliteTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri'
+            });
+
+            // Add default light theme
+            currentTileLayer = lightTileLayer;
+            currentTileLayer.addTo(map);
+
+            // Set up theme switcher functionality
+            setupThemeSwitcher();
+
+            // Enhanced popup content
+            const popupContent = `
+                <div style="font-family: 'Segoe UI', sans-serif; min-width: 250px; padding: 10px;">
+                    <!-- Theater Name -->
+                    <div style="border-bottom: 2px solid #0d6efd; padding-bottom: 10px; margin-bottom: 12px;">
+                        <h4 style="color: #0d6efd; margin: 0; font-size: 18px; font-weight: 600;">
+                            ${theaterName}
+                        </h4>
+                    </div>
+
+                    <!-- Address -->
+                    <div style="display: flex; align-items: flex-start; margin-bottom: 8px;">
+                        <span style="color: #6c757d; margin-right: 8px; font-size: 16px;">📍</span>
+                        <div>
+                            <strong style="color: #495057; font-size: 14px;">Address</strong>
+                            <p style="margin: 2px 0 0 0; color: #6c757d; font-size: 13px; line-height: 1.4;">
+                                ${theaterLocation}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Phone (Optional) -->
+                    ${theaterPhone ? `
+                    <div style="display: flex; align-items: flex-start; margin-bottom: 8px;">
+                        <span style="color: #6c757d; margin-right: 8px; font-size: 16px;">📞</span>
+                        <div>
+                            <strong style="color: #495057; font-size: 14px;">Phone</strong>
+                            <p style="margin: 2px 0 0 0; color: #6c757d; font-size: 13px;">
+                                ${theaterPhone}
+                            </p>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Divider + Button -->
+                    <hr style="border: none; border-top: 1px solid #e9ecef; margin: 12px 0;" />
+                    <div style="text-align: center;">
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(theaterLocation)}"
+                           target="_blank"
+                           style="display: inline-block; background: white; color: #0d6efd; border: 2px solid #0d6efd; padding: 6px 14px; border-radius: 4px; text-decoration: none; font-weight: 500; font-size: 14px; transition: 0.3s;">
+                            Get Directions
+                        </a>
+                    </div>
+                </div>
+            `;
+
+
+            // Add marker with enhanced popup
+            L.marker([data.lat, data.lng])
+                .addTo(map)
+                .bindPopup(popupContent)
+                .openPopup();
+        } else {
+            showFallback();
+        }
+    })
+    .catch(error => {
+        console.error('Map error:', error);
+        showFallback();
+    });
+
+    function setupThemeSwitcher() {
+        const lightBtn = document.getElementById('lightMapBtn');
+        const satelliteBtn = document.getElementById('satelliteMapBtn');
+
+        if (lightBtn && satelliteBtn) {
+            lightBtn.addEventListener('click', function() {
+                if (currentTileLayer !== lightTileLayer) {
+                    map.removeLayer(currentTileLayer);
+                    currentTileLayer = lightTileLayer;
+                    currentTileLayer.addTo(map);
+
+                    // Update button styles
+                    lightBtn.style.background = '#0d6efd';
+                    lightBtn.style.color = 'white';
+                    satelliteBtn.style.background = '#f8f9fa';
+                    satelliteBtn.style.color = 'black';
+                }
+            });
+
+            satelliteBtn.addEventListener('click', function() {
+                if (currentTileLayer !== satelliteTileLayer) {
+                    map.removeLayer(currentTileLayer);
+                    currentTileLayer = satelliteTileLayer;
+                    currentTileLayer.addTo(map);
+
+                    // Update button styles
+                    satelliteBtn.style.background = '#0d6efd';
+                    satelliteBtn.style.color = 'white';
+                    lightBtn.style.background = '#f8f9fa';
+                    lightBtn.style.color = 'black';
+                }
+            });
+        }
+    }
+
+    function showFallback() {
+        document.getElementById('map').innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; text-align: center; padding: 2rem;">
+                <div>
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📍</div>
+                    <h5 style="margin-bottom: 1rem;">${theaterName}</h5>
+                    <p style="margin-bottom: 1rem;">${theaterLocation}</p>
+                    ${theaterPhone ? `<p style="margin-bottom: 1rem;">📞 ${theaterPhone}</p>` : ''}
+                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(theaterLocation)}"
+                       target="_blank"
+                       style="display: inline-block; background: #0d6efd; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none;">
+                        View on Google Maps
+                    </a>
+                </div>
+            </div>
+        `;
+    }
+</script>

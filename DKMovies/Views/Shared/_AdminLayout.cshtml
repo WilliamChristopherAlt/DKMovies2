@@ -71,8 +71,7 @@
             }
 
                 .admin-sidebar.collapsed .nav-text,
-                .admin-sidebar.collapsed .sidebar-brand-text,
-                .admin-sidebar.collapsed .sidebar-footer-text {
+                .admin-sidebar.collapsed .sidebar-brand-text {
                     opacity: 0;
                     display: none;
                 }
@@ -151,21 +150,6 @@
             transition: all 0.3s ease;
         }
 
-        .sidebar-footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 1rem 1.5rem;
-            background: rgba(0,0,0,0.3);
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .sidebar-footer-text {
-            color: #8e8e93;
-            font-size: 0.875rem;
-        }
-
         /* Main Content */
         .admin-content {
             margin-left: var(--sidebar-width);
@@ -201,6 +185,19 @@
                 background: rgba(255,255,255,0.1);
                 color: white;
             }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            color: white;
+            margin-right: 1rem;
+        }
+
+        .user-name {
+            margin-right: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
 
         .user-dropdown .dropdown-toggle {
             background: none;
@@ -292,6 +289,10 @@
             padding: 1rem;
         }
 
+        .user-name {
+            display: none;
+        }
+
         }
 
         /* Custom Scrollbar */
@@ -343,6 +344,27 @@
                 </a>
             </div>
             <div class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminActor" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminActor")">
+                    <i class="fas fa-user-circle nav-icon"></i>
+                    <span class="nav-text">Actors</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminDirector" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminDirector")">
+                    <i class="fas fa-video nav-icon"></i>
+                    <span class="nav-text">Directors</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminTheater" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminTheater")">
+                    <i class="fas fa-building nav-icon"></i>
+                    <span class="nav-text">Theaters</span>
+                </a>
+            </div>
+            <div class="nav-item">
                 <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminShowTime" ? "active" : "")"
                    href="@Url.Action("Index", "AdminShowTime")">
                     <i class="fas fa-clock nav-icon"></i>
@@ -382,19 +404,12 @@
 
             <div class="nav-section-title">Other</div>
             <div class="nav-item">
-                <a class="nav-link" href="@Url.Action("Index", "Home")" target="_blank">
+                <a class="nav-link" href="@Url.Action("Index", "MovieList")" target="_blank">
                     <i class="fas fa-external-link-alt nav-icon"></i>
                     <span class="nav-text">User Website</span>
                 </a>
             </div>
         </nav>
-
-        <div class="sidebar-footer">
-            <div class="sidebar-footer-text">
-                <div class="small text-muted">Logged in as:</div>
-                <div class="fw-medium">@(User?.Identity?.Name ?? "Guest")</div>
-            </div>
-        </div>
     </aside>
 
     <!-- Admin Header -->
@@ -408,6 +423,11 @@
             </div>
 
             <div class="d-flex align-items-center">
+                <!-- User Info -->
+                <div class="user-info d-none d-md-flex">
+                    <span class="user-name">@(User?.Identity?.Name ?? "Guest")</span>
+                </div>
+
                 <!-- User Dropdown -->
                 <div class="dropdown user-dropdown">
                     <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">

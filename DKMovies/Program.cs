@@ -1,9 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using DKMovies.Models;
-using DKMovies.Controllers;
 using DKMovies.Services; // Add this using statement
 using Stripe;
 using DKMovies.ViewModels;
+using Controllers.UserController;
+
+using DKMovies.Models.Data;
+using DKMovies.Models.Data.DatabaseModels;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,7 +71,7 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=MoviesList}/{action=Index}/{id?}");
+    pattern: "{controller=UserMovies}/{action=Index}/{id?}");
 
 // Run the application
 app.Run();

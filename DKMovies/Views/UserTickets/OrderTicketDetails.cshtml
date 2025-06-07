@@ -1,0 +1,308 @@
+﻿@using Microsoft.AspNetCore.Html
+@using DKMovies.Models.Data.DatabaseModels;
+@model List<Seat>
+
+@{
+    var showTime = ViewData["ShowTime"] as ShowTime;
+    var takenSeats = ViewData["TakenSeats"] as List<int> ?? new List<int>();
+}
+
+<style>
+    .cinema-screen {
+        background: #6c757d;
+        height: 8px;
+        border-radius: 8px;
+        margin: 0 auto 2rem;
+        width: 60%;
+        position: relative;
+    }
+
+        .cinema-screen::after {
+            content: "SCREEN";
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+    .seat-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+    }
+
+    .seat-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 6px;
+        justify-content: center;
+    }
+
+    .seat-checkbox {
+        display: none !important;
+    }
+
+    .seat-label {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        border: 2px solid #dee2e6;
+        background: white;
+        color: #495057;
+        font-weight: 500;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .seat-label:hover:not(.seat-taken) {
+            border-color: #198754;
+            background: #f8f9fa;
+        }
+
+        .seat-label.seat-selected {
+            background: #198754;
+            border-color: #198754;
+            color: white;
+        }
+
+        .seat-label.seat-taken {
+            background: #6c757d !important;
+            border-color: #6c757d !important;
+            color: white !important;
+            cursor: not-allowed !important;
+            opacity: 0.7 !important;
+        }
+
+    .legend-seat {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        display: inline-block;
+    }
+
+    .concession-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        transition: box-shadow 0.2s ease;
+    }
+
+        .concession-card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+    .concession-image {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+
+    .quantity-input {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.9rem;
+    }
+
+        .quantity-input:focus {
+            border-color: #198754;
+            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+            outline: none;
+        }
+</style>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="container mt-4">
+        <div class="alert alert-danger">
+            <h4>No Seats Available</h4>
+            <p>Unfortunately, there are no seats available for this showtime.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container mt-4 mb-5">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-1">Select Your Seats</h2>
+                <p class="text-muted mb-4">@showTime.Movie.Title • @showTime.StartTime.ToString("f")</p>
+
+                <div class="cinema-screen"></div>
+
+                <form asp-action="ConfirmOrder" method="post" id="seatSelectionForm">
+                    <input type="hidden" name="ShowTimeID" value="@showTime.ID" />
+
+                    <div class="row g-3 mb-4">
+                        @for (int section = 0; section < 3; section++)
+                        {
+                            int minSeat = section * 6 + 1;
+                            int maxSeat = minSeat + 5;
+
+                            <div class="col-md-4">
+                                <div class="seat-section">
+                                    <h6 class="text-center mb-3 fw-semibold">Seats @minSeat–@maxSeat</h6>
+                                    @foreach (var rowGroup in Model.Where(s => s.SeatNumber >= minSeat && s.SeatNumber <= maxSeat)
+                                   .GroupBy(s => s.RowLabel)
+                                   .OrderBy(g => g.Key))
+                                    {
+                                        <div class="seat-row">
+                                            @foreach (var seat in rowGroup.OrderBy(s => s.SeatNumber))
+                                            {
+                                                var isTaken = takenSeats.Contains(seat.ID);
+                                                var seatId = $"seat-{seat.ID}";
+
+                                                <div>
+                                                    <input type="checkbox"
+                                                           id="@seatId"
+                                                           name="SelectedSeats[]"
+                                                           value="@seat.ID"
+                                                           class="seat-checkbox"
+                                                    @(isTaken ? "disabled" : "") />
+
+                                                    <label for="@seatId"
+                                                           class="seat-label @(isTaken ? "seat-taken" : "")">
+                                                        @seat.RowLabel@seat.SeatNumber
+                                                    </label>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-4 mb-4 p-3 bg-light rounded">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="legend-seat" style="background: white; border: 2px solid #dee2e6;"></div>
+                            <span class="small">Available</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="legend-seat" style="background: #198754;"></div>
+                            <span class="small">Selected</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="legend-seat" style="background: #6c757d;"></div>
+                            <span class="small">Taken</span>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info d-flex justify-content-between align-items-center mb-4">
+                        <span>Selected Seats:</span>
+                        <span id="selectedSeatsCount" class="fw-bold">0</span>
+                    </div>
+
+                    @{
+                        var concessions = ViewData["AvailableConcessions"] as List<TheaterConcession> ?? new();
+                    }
+
+                    @if (concessions.Any())
+                    {
+                        <div class="mt-5">
+                            <h4 class="mb-3">Concessions</h4>
+                            <div class="row g-3">
+                                @foreach (var item in concessions)
+                                {
+                                    var imagePath = string.IsNullOrWhiteSpace(item.Concession.ImagePath)
+                                    ? Url.Content("~/images/concessions/default.jpg")
+                                    : Url.Content($"~/images/concessions/{item.Concession.ImagePath}");
+
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="concession-card p-3 h-100">
+                                            <div class="d-flex gap-3">
+                                                <img src="@imagePath"
+                                                     class="concession-image flex-shrink-0"
+                                                     alt="@item.Concession.Name" />
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1">@item.Concession.Name</h6>
+                                                    <p class="text-muted small mb-2">@item.Concession.Description</p>
+
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <span class="fw-semibold text-success">@item.Price.ToString("C")</span>
+                                                        <span class="small text-muted">Stock: @item.StockLeft</span>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label small mb-1" for="qty-@item.ID">Quantity</label>
+                                                        <input type="number"
+                                                               name="Quantities[@item.ID]"
+                                                               id="qty-@item.ID"
+                                                               class="quantity-input form-control form-control-sm"
+                                                               min="0"
+                                                               max="@item.StockLeft"
+                                                               value="0" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-success btn-lg px-4">Proceed to Payment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="container mt-3">
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function updateSeatVisuals() {
+            const checkboxes = document.querySelectorAll('input[name="SelectedSeats[]"]');
+            checkboxes.forEach(cb => {
+                const label = document.querySelector(`label[for="${cb.id}"]`);
+                if (!label || label.classList.contains('seat-taken')) return;
+
+                if (cb.checked) {
+                    label.classList.add("seat-selected");
+                } else {
+                    label.classList.remove("seat-selected");
+                }
+            });
+
+            const selectedSeats = document.querySelectorAll('input[name="SelectedSeats[]"]:checked');
+            document.getElementById('selectedSeatsCount').textContent = selectedSeats.length;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updateSeatVisuals();
+
+            document.querySelectorAll('input[name="SelectedSeats[]"]').forEach(cb => {
+                cb.addEventListener('change', updateSeatVisuals);
+            });
+
+            const form = document.getElementById('seatSelectionForm');
+            form.addEventListener('submit', function (e) {
+                const selected = document.querySelectorAll('input[name="SelectedSeats[]"]:checked');
+                if (selected.length === 0) {
+                    e.preventDefault();
+                    alert('Please select at least one seat before proceeding to payment.');
+                }
+            });
+        });
+    </script>
+}

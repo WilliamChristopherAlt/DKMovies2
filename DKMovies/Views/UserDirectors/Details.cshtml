@@ -1,0 +1,516 @@
+﻿@using DKMovies.Models.Data.DatabaseModels;
+@model Director
+
+@{
+    ViewData["Title"] = "Director Details";
+    var directorAge = ViewData["DirectorAge"] as int?;
+    var totalMovies = (int)ViewData["TotalMovies"];
+    var genresWorkedIn = (int)ViewData["GenresWorkedIn"];
+    var moviesWithRatings = ViewData["MoviesWithRatings"] as dynamic;
+
+    // Director image path
+    var directorImagePath = string.IsNullOrWhiteSpace(Model.ProfileImagePath)
+        ? Url.Content("~/images/default_person.png")
+        : Url.Content($"~/images/directors/{Model.ProfileImagePath}");
+}
+
+@using System.Security.Claims
+@{
+    var role = User.FindFirst(ClaimTypes.Role)?.Value;
+}
+
+<!-- Load Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+<style>
+    .director-header {
+        background: white;
+        padding: 2rem 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .director-image {
+        width: 100%;
+        max-width: 280px;
+        height: 400px;
+        object-fit: cover;
+        object-position: center;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .director-info h2 {
+        color: #333;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+    }
+
+    .director-detail {
+        margin-bottom: 1rem;
+        color: #555;
+    }
+
+        .director-detail strong {
+            color: #333;
+            margin-right: 0.5rem;
+        }
+
+    .stats-inline {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .stat-item-inline {
+        background: #6c757d;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        min-width: 100px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+    }
+
+        .stat-item-inline:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+    .stat-number-inline {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+        display: block;
+        line-height: 1;
+    }
+
+    .stat-label-inline {
+        color: white;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-top: 0.25rem;
+    }
+
+    .biography-section {
+        background: white;
+        padding: 2rem;
+        margin: 2rem 0;
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        border-left: 4px solid #28a745;
+    }
+
+    .movies-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        border-left: 4px solid #007bff;
+    }
+
+    .section-title {
+        color: #333;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .movie-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 1.5rem;
+    }
+
+        .movie-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+    .movie-poster {
+        height: 400px;
+        width: 100%;
+        object-fit: contain;
+        background-color: #f8f9fa;
+    }
+
+    .movie-info {
+        padding: 1.25rem;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .movie-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: #333;
+        line-height: 1.3;
+    }
+
+    .director-role {
+        background: #dc3545;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        display: inline-block;
+        margin-bottom: 0.75rem;
+        width: fit-content;
+    }
+
+    .movie-details {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+
+    .movie-detail-item {
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .rating-stars {
+        color: #ffc107;
+        margin-top: auto;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .no-rating {
+        color: #6c757d;
+        font-style: italic;
+        font-size: 0.9rem;
+        margin-top: auto;
+    }
+
+    .no-movies {
+        text-align: center;
+        color: #6c757d;
+        padding: 4rem 2rem;
+    }
+
+        .no-movies i {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+    .movie-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        height: 100%;
+    }
+
+        .movie-link:hover {
+            text-decoration: none;
+            color: inherit;
+        }
+
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin-bottom: 1.5rem;
+    }
+
+    .breadcrumb-item a {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+        .breadcrumb-item a:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+
+    .breadcrumb-item.active {
+        color: #6c757d;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .btn-outline-primary {
+        border-width: 2px;
+    }
+
+    @@media (max-width: 768px) {
+        .director-header
+
+    {
+        padding: 1rem 0;
+    }
+
+    .director-image {
+        height: 350px;
+        margin-bottom: 1.5rem;
+    }
+
+    .stats-inline {
+        justify-content: center;
+        margin-top: 1.5rem;
+    }
+
+    .action-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+
+    }</style>
+
+<!-- Director Header -->
+<div class="director-header">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a asp-controller="UserMovies" asp-action="Index">
+                        <i class="bi bi-house"></i> Home
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a asp-controller="UserDirectors" asp-action="Index">
+                        <i class="bi bi-camera-reels"></i> Directors
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">@Model.FullName</li>
+            </ol>
+        </nav>
+
+        <div class="row align-items-start">
+            <!-- Director Image -->
+            <div class="col-lg-3 col-md-4 mb-4 mb-md-0">
+                <img src="@directorImagePath"
+                     alt="@Model.FullName"
+                     class="director-image"
+                     onerror="this.src='@Url.Content("~/images/default_person.png")'" />
+            </div>
+
+            <!-- Director Info and Stats -->
+            <div class="col-lg-9 col-md-8">
+                <div class="row">
+                    <!-- Director Details -->
+                    <div class="col-12">
+                        <div class="director-info">
+                            <h2>@Model.FullName</h2>
+
+                            <div class="director-detail">
+                                <strong><i class="bi bi-calendar-event"></i> Age:</strong>
+                                @if (directorAge.HasValue)
+                                {
+                                    <span>@directorAge years old</span>
+                                }
+                                else
+                                {
+                                    <span>N/A</span>
+                                }
+                            </div>
+
+                            <div class="director-detail">
+                                <strong><i class="bi bi-calendar3"></i> Born:</strong>
+                                @if (Model.DateOfBirth.HasValue)
+                                {
+                                    <span>@Model.DateOfBirth.Value.ToString("MMMM dd, yyyy")</span>
+                                }
+                                else
+                                {
+                                    <span>N/A</span>
+                                }
+                            </div>
+
+                            <div class="director-detail">
+                                <strong><i class="bi bi-geo-alt"></i> Place of Birth:</strong>
+                                @if (!string.IsNullOrWhiteSpace(Model.PlaceOfBirth))
+                                {
+                                    <span>@Model.PlaceOfBirth</span>
+                                }
+                                else
+                                {
+                                    <span>N/A</span>
+                                }
+                            </div>
+
+                            <!-- Statistics - Now positioned below director details -->
+                            <div class="stats-inline">
+                                <div class="stat-item-inline">
+                                    <span class="stat-number-inline">@totalMovies</span>
+                                    <div class="stat-label-inline">Movies</div>
+                                </div>
+                                <div class="stat-item-inline">
+                                    <span class="stat-number-inline">@genresWorkedIn</span>
+                                    <div class="stat-label-inline">Genres</div>
+                                </div>
+                                <div class="stat-item-inline">
+                                    @if (moviesWithRatings != null && ((IEnumerable<dynamic>)moviesWithRatings).Any())
+                                    {
+                                        var avgRating = ((IEnumerable<dynamic>)moviesWithRatings).Average(m => (double)m.AverageRating);
+                                        <span class="stat-number-inline">@avgRating.ToString("F1")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="stat-number-inline">N/A</span>
+                                    }
+                                    <div class="stat-label-inline">Avg Rating</div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="action-buttons mt-3">
+                                <a asp-controller="UserDirectors" asp-action="Index" class="btn btn-outline-primary">
+                                    <i class="bi bi-arrow-left me-1"></i> Back to Directors
+                                </a>
+
+                                @if (role == "Admin")
+                                {
+                                    <a asp-action="Edit" asp-route-id="@Model.ID" class="btn btn-outline-secondary">
+                                        <i class="bi bi-pencil me-1"></i> Edit Director
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Biography Section -->
+@if (!string.IsNullOrWhiteSpace(Model.Biography))
+{
+    <div class="container">
+        <div class="biography-section">
+            <h3 class="section-title">
+                <i class="bi bi-person-lines-fill"></i>Biography
+            </h3>
+            <p class="mb-0">@Model.Biography</p>
+        </div>
+    </div>
+}
+
+<!-- Movies Section -->
+<div class="container mb-4">
+    <div class="movies-section">
+        <h3 class="section-title">
+            <i class="bi bi-film"></i>Directed Movies (@totalMovies)
+        </h3>
+
+        @if (moviesWithRatings != null && ((IEnumerable<dynamic>)moviesWithRatings).Any())
+        {
+            <div class="row">
+                @foreach (var movieData in (IEnumerable<dynamic>)moviesWithRatings)
+                {
+                    var movie = movieData.Movie;
+                    var averageRating = (double)movieData.AverageRating;
+
+                    // Movie poster path
+                    var posterPath = string.IsNullOrWhiteSpace(movie.PosterImagePath)
+                    ? Url.Content("~/images/movie_posters/default.png")
+                    : Url.Content($"~/images/movie_posters/{movie.PosterImagePath}");
+
+                    <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
+                        <a asp-controller="UserMovies" asp-action="Details" asp-route-id="@movie.ID" class="movie-link">
+                            <div class="movie-card">
+                                <img src="@posterPath"
+                                     alt="@movie.Title"
+                                     class="movie-poster"
+                                     onerror="this.src='@Url.Content("~/images/movie_posters/default.png")'" />
+
+                                <div class="movie-info">
+                                    <div class="movie-title">@movie.Title</div>
+
+                                    <div class="director-role">Director</div>
+
+                                    <div class="movie-details">
+                                        <div class="movie-detail-item">
+                                            <i class="bi bi-calendar3"></i>
+                                            @if (movie.ReleaseDate != null && movie.ReleaseDate != default(DateTime))
+                                            {
+                                                <span>@(((DateTime)movie.ReleaseDate).Year)</span>
+                                            }
+                                            else
+                                            {
+                                                <span>N/A</span>
+                                            }
+                                        </div>
+
+                                        <div class="movie-detail-item">
+                                            <i class="bi bi-clock"></i>
+                                            @if (movie.DurationMinutes > 0)
+                                            {
+                                                <span>@movie.DurationMinutes min</span>
+                                            }
+                                            else
+                                            {
+                                                <span>N/A</span>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- Rating -->
+                                    <div class="mt-auto">
+                                        @if (averageRating > 0)
+                                        {
+                                            <div class="rating-stars">
+                                                @for (int i = 1; i <= 5; i++)
+                                                {
+                                                    if (i <= averageRating)
+                                                    {
+                                                        <i class="bi bi-star-fill"></i>
+                                                    }
+                                                    else if (i - 0.5 <= averageRating)
+                                                    {
+                                                        <i class="bi bi-star-half"></i>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-star"></i>
+                                                    }
+                                                }
+                                                <span>(@averageRating.ToString("F1"))</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="no-rating">No ratings yet</div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="no-movies">
+                <i class="bi bi-camera-reels"></i>
+                <p>This director hasn't directed any movies yet.</p>
+            </div>
+        }
+    </div>
+</div>

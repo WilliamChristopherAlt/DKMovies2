@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
-using DKMovies.Models;
 using System;
 using System.Linq;
 using System.Security.Cryptography;
@@ -12,6 +11,9 @@ using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using System.Net.Mail;
 using System.Net;
+
+using DKMovies.Models.Data;
+using DKMovies.Models.Data.DatabaseModels;
 
 namespace DKMovies.Controllers
 {
@@ -232,7 +234,7 @@ namespace DKMovies.Controllers
                 };
 
                 await HttpContext.SignInAsync("MyCookieAuth", new ClaimsPrincipal(claimsIdentity), authProperties);
-                return RedirectToAction("Index", "MoviesList");
+                return RedirectToAction("Index", "UserMovies");
             }
 
             // Try Admins
@@ -279,7 +281,7 @@ namespace DKMovies.Controllers
                 };
 
                 await HttpContext.SignInAsync("MyCookieAuth", new ClaimsPrincipal(claimsIdentity), authProperties);
-                return RedirectToAction("Index", "MoviesList");
+                return RedirectToAction("Index", "UserMovies");
             }
 
             await _context.SaveChangesAsync();
@@ -317,7 +319,7 @@ namespace DKMovies.Controllers
                 await SignInUser(user, rememberMe);
 
                 TempData["ToastSuccess"] = "🎉 Đăng nhập thành công!";
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "UserMovies");
             }
 
             ModelState.AddModelError("", "Mã xác nhận không hợp lệ hoặc đã hết hạn.");
@@ -536,7 +538,7 @@ namespace DKMovies.Controllers
                 HttpContext.Session.SetString("Username", admin.Username);
                 HttpContext.Session.SetString("UserID", admin.ID.ToString());
                 HttpContext.Session.SetString("Role", "Admin");
-                return RedirectToAction("AdminDashboard", "Admin");
+                return RedirectToAction("Index", "Admin");
             }
             ModelState.AddModelError("", "Tên đăng nhập hoặc mật khẩu không hợp lệ.");
             return View();

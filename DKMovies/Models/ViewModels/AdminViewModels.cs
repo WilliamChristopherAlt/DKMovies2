@@ -1,4 +1,4 @@
-﻿using DKMovies.Models;
+﻿using DKMovies.Models.Data.DatabaseModels;
 
 namespace DKMovies.Models.ViewModels
 {
@@ -66,4 +66,50 @@ namespace DKMovies.Models.ViewModels
         public int EndItem => Math.Min(CurrentPage * PageSize, TotalEmployees);
     }
 
+    public class ConcessionIndexViewModel
+    {
+        public IEnumerable<Concession> Concessions { get; set; }
+        public int CurrentPage { get; set; }
+        public int TotalPages { get; set; }
+        public int TotalConcessions { get; set; }
+        public int PageSize { get; set; }
+        public string SearchTerm { get; set; }
+        public bool HasPreviousPage { get; set; }
+        public bool HasNextPage { get; set; }
+
+        public int StartItem => (CurrentPage - 1) * PageSize + 1;
+        public int EndItem => Math.Min(CurrentPage * PageSize, TotalConcessions);
+    }
+
+    public class ActorIndexViewModel
+    {
+        public IEnumerable<Actor> Actors { get; set; } = new List<Actor>();
+        public int CurrentPage { get; set; }
+        public int TotalPages { get; set; }
+        public int TotalActors { get; set; }
+        public int PageSize { get; set; }
+        public string SearchTerm { get; set; } = "";
+        public string FilterType { get; set; } = "all";
+        public bool HasPreviousPage { get; set; }
+        public bool HasNextPage { get; set; }
+
+        // Calculated properties for pagination display
+        public int StartItem => (CurrentPage - 1) * PageSize + 1;
+        public int EndItem => Math.Min(CurrentPage * PageSize, TotalActors);
+    }
+
+    public class DirectorIndexViewModel
+    {
+        public IEnumerable<Director> Directors { get; set; } = new List<Director>();
+        public int CurrentPage { get; set; }
+        public int TotalPages { get; set; }
+        public int TotalDirectors { get; set; }
+        public int PageSize { get; set; }
+        public string SearchTerm { get; set; } = string.Empty;
+        public string FilterType { get; set; } = "all";
+        public bool HasPreviousPage { get; set; }
+        public bool HasNextPage { get; set; }
+        public int StartItem => (CurrentPage - 1) * PageSize + 1;
+        public int EndItem => Math.Min(CurrentPage * PageSize, TotalDirectors);
+    }
 }

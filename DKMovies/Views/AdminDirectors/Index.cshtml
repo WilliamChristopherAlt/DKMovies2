@@ -1,0 +1,506 @@
+﻿@using DKMovies.Models.ViewModels
+@model DirectorIndexViewModel
+@{
+    ViewData["Title"] = "Director Management";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .director-card {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .director-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+        }
+
+    .avatar-container {
+        position: relative;
+        width: 100%;
+        max-width: 120px;
+    }
+
+    .director-avatar {
+        width: 100%;
+        height: 180px; /* Or another value as needed */
+        object-fit: cover; /* 'contain' if you want full image without cropping */
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+
+        .director-avatar:hover {
+            transform: scale(1.05);
+        }
+
+    .action-buttons {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .director-card:hover .action-buttons {
+        opacity: 1;
+    }
+
+    .biography-preview {
+        font-style: italic;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .pagination .page-link {
+        color: #667eea;
+        border-color: #dee2e6;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #667eea;
+        border-color: #667eea;
+    }
+
+    .pagination .page-link:hover {
+        color: #5a6fd8;
+        background-color: #e9ecef;
+        border-color: #dee2e6;
+    }
+</style>
+
+<!-- Header Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 bg-gradient-primary text-white shadow-sm">
+            <div class="card-body py-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1 fw-bold">
+                            <i class="fas fa-video me-2"></i>Director Management
+                        </h2>
+                        <p class="mb-0 opacity-90">Manage movie directors and filmmakers</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a asp-action="Create" class="btn btn-light btn-sm">
+                            <i class="fas fa-plus me-1"></i>Add Director
+                        </a>
+                        <button class="btn btn-light btn-sm" onclick="location.reload()">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Directors.Any())
+{
+    <!-- Empty State -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-video text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+                    </div>
+                    <h4 class="text-muted mb-3">No Directors Found</h4>
+                    <p class="text-muted mb-4">
+                        No directors match your search criteria. Try adjusting your filters or search term.
+                    </p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Clear Filters
+                        </a>
+                        <a asp-action="Create" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add First Director
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Filter and Search Section -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <form asp-action="Index" method="get" id="filterForm">
+                <input type="hidden" name="page" value="1" id="pageInput" />
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <h5 class="mb-0 text-dark">
+                        <i class="fas fa-list me-2 text-primary"></i>
+                        Directors
+                        <span class="badge bg-primary ms-2">@Model.TotalDirectors</span>
+                    </h5>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-filter me-1"></i>
+                                @(Model.FilterType == "all" ? "All Directors" :
+                                    Model.FilterType == "recent" ? "Young Directors (Under 30)" :
+                                    Model.FilterType == "veteran" ? "Veteran Directors (Over 50)" : "Active Directors")
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item @(Model.FilterType == "all" ? "active" : "")" href="javascript:void(0)" onclick="setFilter('all')">All Directors</a></li>
+                                <li><a class="dropdown-item @(Model.FilterType == "recent" ? "active" : "")" href="javascript:void(0)" onclick="setFilter('recent')">Young Directors (Under 30)</a></li>
+                                <li><a class="dropdown-item @(Model.FilterType == "veteran" ? "active" : "")" href="javascript:void(0)" onclick="setFilter('veteran')">Veteran Directors (Over 50)</a></li>
+                                <li><a class="dropdown-item @(Model.FilterType == "active" ? "active" : "")" href="javascript:void(0)" onclick="setFilter('active')">Active Directors</a></li>
+                            </ul>
+                        </div>
+                        <div class="input-group" style="width: 250px;">
+                            <input type="text" name="search" class="form-control" placeholder="Search directors..." value="@Model.SearchTerm" id="searchInput">
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" name="filter" value="@Model.FilterType" id="filterInput" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Info -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    Showing @Model.StartItem-@Model.EndItem of @Model.TotalDirectors directors
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+                    {
+                        <span> for "@Model.SearchTerm"</span>
+                    }
+                </small>
+                @if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || Model.FilterType != "all")
+                {
+                    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>Clear Filters
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Directors Grid -->
+    <div class="row" id="directorsContainer">
+        @foreach (var director in Model.Directors)
+        {
+            <div class="col-12 mb-4 director-item">
+                <div class="card border-0 shadow-sm director-card h-100" onclick="goToDetails(@director.ID)" style="cursor: pointer;">
+                    <!-- Action Buttons -->
+                    <div class="position-absolute action-buttons" style="top: 10px; right: 10px; z-index: 10;">
+                        <div class="btn-group">
+                            <a asp-action="Edit" asp-route-id="@director.ID" class="btn btn-warning btn-sm" onclick="event.stopPropagation()" data-bs-toggle="tooltip" title="Edit Director">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation(); confirmDelete(@director.ID, '@director.FullName')" data-bs-toggle="tooltip" title="Delete Director">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <!-- Director Avatar -->
+                            <div class="col-md-2 col-sm-3">
+                                <div class="avatar-container">
+                                    @{
+                                        var avatarPath = string.IsNullOrWhiteSpace(director.ProfileImagePath) ? "default_person.png" : director.ProfileImagePath.TrimStart('/');
+                                        var fullAvatarPath = Url.Content($"~/images/directors/{avatarPath}");
+                                    }
+                                    <img src="@fullAvatarPath" class="img-fluid director-avatar" onerror="this.onerror=null; this.src='@Url.Content("~/images/default_person.png")'" />
+                                </div>
+                            </div>
+
+                            <!-- Director Details -->
+                            <div class="col-md-10 col-sm-9">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h5 class="card-title mb-1 fw-bold text-dark">@director.FullName</h5>
+                                        @if (!string.IsNullOrWhiteSpace(director.PlaceOfBirth))
+                                        {
+                                            <p class="text-muted mb-0">
+                                                <i class="fas fa-map-marker-alt me-1"></i>@director.PlaceOfBirth
+                                            </p>
+                                        }
+                                        @if (director.Movies?.Any() == true)
+                                        {
+                                            <p class="text-muted mb-2">
+                                                <i class="fas fa-film me-1"></i>@director.Movies.Count() movie@(director.Movies.Count() == 1 ? "" : "s")
+                                            </p>
+                                        }
+                                    </div>
+                                    <div class="text-end">
+                                        @if (director.Movies?.Any() == true)
+                                        {
+                                            <span class="badge bg-success px-2 py-1 mb-1">Active</span>
+                                        }
+                                        @if (director.DateOfBirth.HasValue)
+                                        {
+                                            var age = DateTime.Now.Year - director.DateOfBirth.Value.Year;
+                                            if (DateTime.Now.DayOfYear < director.DateOfBirth.Value.DayOfYear)
+                                                age--;
+                                            @if (age < 30)
+                                            {
+                                                <br />
+                                                <span class="badge bg-info text-white px-2 py-1">Young</span>
+                                            }
+                                            else if (age > 50)
+                                            {
+                                                <br />
+                                                <span class="badge bg-warning text-dark px-2 py-1">Veteran</span>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Director Info Row -->
+                                <div class="row g-2 mb-3">
+                                    @if (director.DateOfBirth.HasValue)
+                                    {
+                                        <div class="col-auto">
+                                            <span class="badge bg-light text-dark">
+                                                <i class="fas fa-birthday-cake me-1"></i>
+                                                Age: @{
+                                                    var age = DateTime.Now.Year - director.DateOfBirth.Value.Year;
+                                                    if (DateTime.Now.DayOfYear < director.DateOfBirth.Value.DayOfYear)
+                                                        age--;
+                                                }@age
+                                            </span>
+                                        </div>
+                                    }
+                                    @if (director.Movies?.Any() == true)
+                                    {
+                                        <div class="col-auto">
+                                            <span class="badge bg-primary text-white">
+                                                <i class="fas fa-film me-1"></i>@director.Movies.Count() Movies
+                                            </span>
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Biography Preview -->
+                                @if (!string.IsNullOrWhiteSpace(director.Biography))
+                                {
+                                    <div class="row mb-2">
+                                        <div class="col-12">
+                                            <p class="text-muted mb-0 biography-preview">
+                                                <i class="fas fa-quote-left me-1"></i>
+                                                @(director.Biography.Length > 100 ? director.Biography.Substring(0, 100) + "..." : director.Biography)
+                                            </p>
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Director Statistics -->
+                                <div class="row g-2">
+                                    @if (director.DateOfBirth.HasValue)
+                                    {
+                                        <div class="col-auto">
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar-alt me-1"></i>
+                                                Born: @director.DateOfBirth.Value.ToString("MMM dd, yyyy")
+                                            </small>
+                                        </div>
+                                    }
+                                    @if (director.Movies?.Any() == true)
+                                    {
+                                        <div class="col-auto">
+                                            <small class="text-success fw-bold">
+                                                <i class="fas fa-trophy me-1"></i>
+                                                @director.Movies.Count() directed movie@(director.Movies.Count() == 1 ? "" : "s")
+                                            </small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <nav aria-label="Director pagination">
+                    <ul class="pagination justify-content-center mb-0">
+                        @if (Model.CurrentPage > 3)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(1)">
+                                    <i class="fas fa-angle-double-left"></i>
+                                </a>
+                            </li>
+                        }
+
+                        @if (Model.HasPreviousPage)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(Model.CurrentPage - 1)">
+                                    <i class="fas fa-angle-left"></i>
+                                </a>
+                            </li>
+                        }
+
+                        @{
+                            var startPage = Math.Max(1, Model.CurrentPage - 2);
+                            var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="@GetPageUrl(i)">@i</a>
+                            </li>
+                        }
+
+                        @if (Model.HasNextPage)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(Model.CurrentPage + 1)">
+                                    <i class="fas fa-angle-right"></i>
+                                </a>
+                            </li>
+                        }
+
+                        @if (Model.CurrentPage < Model.TotalPages - 2)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(Model.TotalPages)">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    }
+
+    <!-- Footer Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Total: @Model.TotalDirectors directors</strong>
+                            <span class="text-muted ms-2">registered</span>
+                        </div>
+                        <div>
+                            <a asp-action="Create" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-1"></i>Add New Director
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-danger me-2"></i>Confirm Deletion
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Are you sure you want to delete this director?</p>
+                <div class="alert alert-danger">
+                    <strong id="directorNameToDelete"></strong>
+                </div>
+                <p class="text-muted small mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    This action cannot be undone. All director data and related records will be permanently deleted.
+                </p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-1"></i>Delete Director
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@{
+    string GetPageUrl(int page)
+    {
+        var routeValues = new Dictionary<string, object>
+                {
+                    ["page"] = page
+                };
+
+        if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+            routeValues["search"] = Model.SearchTerm;
+
+        if (Model.FilterType != "all")
+            routeValues["filter"] = Model.FilterType;
+
+        return Url.Action("Index", routeValues);
+    }
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            $('.director-card').hover(
+                function() {
+                    $(this).addClass('shadow-lg').css('transform', 'translateY(-2px)');
+                    $(this).find('.action-buttons').addClass('show');
+                },
+                function() {
+                    $(this).removeClass('shadow-lg').css('transform', 'none');
+                    $(this).find('.action-buttons').removeClass('show');
+                }
+            );
+
+            $('#searchInput').on('keypress', function(e) {
+                if (e.which === 13) {
+                    $('#pageInput').val(1);
+                    $('#filterForm').submit();
+                }
+            });
+        });
+
+        function goToDetails(directorId) {
+            window.location.href = '/AdminDirector/Details/' + directorId;
+        }
+
+        function confirmDelete(directorId, directorName) {
+            document.getElementById('directorNameToDelete').textContent = directorName;
+            document.getElementById('deleteForm').action = '/AdminDirector/Delete/' + directorId;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+
+        function setFilter(filterType) {
+            $('#filterInput').val(filterType);
+            $('#pageInput').val(1);
+            $('#filterForm').submit();
+        }
+    </script>
+}

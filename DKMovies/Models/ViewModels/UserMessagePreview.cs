@@ -1,5 +1,5 @@
 ﻿using System;
-using DKMovies.Models;
+using DKMovies.Models.Data.DatabaseModels;
 
 namespace DKMovies.Models.ViewModels
 {
