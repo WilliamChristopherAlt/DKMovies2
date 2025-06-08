@@ -119,7 +119,17 @@ INSERT INTO Employees (TheaterID, RoleID, FullName, Email, Phone, Gender, DateOf
 (1, 2, 'Bob Cashier', 'bob@cineworld.com', '8888888888', 'Male', '1990-09-15', 'BBB222', '456 Ocean Dr', 3000, 'men/10.jpg'),
 (2, 1, 'Clara Watts', 'clara@galaxy.com', '7777777777', 'Female', '1985-03-12', 'CCC333', '789 Park Ave', 5200, 'women/11.jpg'),
 (3, 3, 'Dave Clean', 'dave@regal.com', '6666666666', 'Male', '1992-11-09', 'DDD444', '123 Elm St', 2500, 'men/11.jpg'),
-(4, 4, 'Emily Usher', 'emily@filmcity.com', '5555555555', 'Female', '1990-03-21', 'EEE555', '456 Oak Rd', 2800, 'women/12.jpg');
+(4, 4, 'Emily Usher', 'emily@filmcity.com', '5555555555', 'Female', '1990-03-21', 'EEE555', '456 Oak Rd', 2800, 'women/12.jpg'),
+(2, 2, 'Frank Booth', 'frank@galaxy.com', '9876543210', 'Male', '1987-06-22', 'FFF666', '99 Cedar Lane', 3100, 'men/12.jpg'),
+(3, 1, 'Grace Manager', 'grace@regal.com', '9123456780', 'Female', '1979-01-15', 'GGG777', '101 Pine St', 5300, 'women/13.jpg'),
+(4, 2, 'Henry Cash', 'henry@filmcity.com', '9012345678', 'Male', '1991-04-18', 'HHH888', '202 Maple Rd', 2950, 'men/13.jpg'),
+(1, 3, 'Ivy Cleanwell', 'ivy@cineworld.com', '9345678901', 'Female', '1993-12-05', 'III999', '303 Birch Blvd', 2600, 'women/14.jpg'),
+(2, 4, 'Jake Door', 'jake@galaxy.com', '9456789012', 'Male', '1989-08-30', 'JJJ000', '404 Aspen Way', 2750, 'men/14.jpg'),
+(3, 2, 'Karen Booth', 'karen@regal.com', '9567890123', 'Female', '1986-05-11', 'KKK111', '505 Spruce Ct', 3100, 'women/15.jpg'),
+(4, 3, 'Leo Janitor', 'leo@filmcity.com', '9678901234', 'Male', '1994-10-19', 'LLL222', '606 Chestnut Dr', 2550, 'men/15.jpg'),
+(1, 4, 'Mia Greet', 'mia@cineworld.com', '9789012345', 'Female', '1992-02-27', 'MMM333', '707 Walnut Ln', 2850, 'women/16.jpg'),
+(2, 3, 'Nick Sweep', 'nick@galaxy.com', '9890123456', 'Male', '1995-07-16', 'NNN444', '808 Willow Ave', 2450, 'men/16.jpg'),
+(3, 4, 'Olivia Doorwell', 'olivia@regal.com', '9001234567', 'Female', '1990-11-23', 'OOO555', '909 Cypress Pl', 2700, 'women/17.jpg');
 
 -- ADMINS
 INSERT INTO Admins (EmployeeID, PasswordHash, Username) VALUES
@@ -1924,11 +1934,20 @@ BEGIN
 
     WHILE @i <= @showCount
     BEGIN
+        -- Random day offset between 0 and 515 (for Jan 1, 2024 to May 31, 2025)
+        DECLARE @dayOffset INT = ABS(CHECKSUM(NEWID())) % 516;
+
+        -- Random hour between 8 and 22 (8AM to 10PM)
+        DECLARE @hourOffset INT = ABS(CHECKSUM(NEWID())) % 15 + 8;
+
+        -- Final random datetime
+        DECLARE @startTime DATETIME = DATEADD(HOUR, @hourOffset, DATEADD(DAY, @dayOffset, '2024-01-01'));
+
         INSERT INTO ShowTimes (MovieID, AuditoriumID, StartTime, DurationMinutes, SubtitleLanguageID, Is3D, Price)
         VALUES (
             @movieID,
             ABS(CHECKSUM(NEWID())) % 50 + 1,  -- AuditoriumID 1–50
-            DATEADD(HOUR, ABS(CHECKSUM(NEWID())) % 10 + 10, DATEADD(DAY, ABS(CHECKSUM(NEWID())) % 6, '2025-10-10')),
+            @startTime,
             ABS(CHECKSUM(NEWID())) % 71 + 90, -- Duration: 90–160 mins
             ABS(CHECKSUM(NEWID())) % 4 + 1,   -- SubtitleLanguageID 1–4
             ABS(CHECKSUM(NEWID())) % 2,       -- Is3D: 0 or 1
@@ -2003,8 +2022,6 @@ BEGIN
 
     SET @TID = @TID + 1;
 END;
-
-SET NOCOUNT OFF;
 
 GO
 
@@ -2390,3 +2407,86 @@ UPDATE Movies SET TrailerUrl = 'https://www.youtube.com/watch?v=lB95KLmpLR4'
 WHERE Title = 'The Social Network';
 UPDATE Movies SET TrailerUrl = 'https://www.youtube.com/watch?v=yNncHPl1UXg' 
 WHERE Title = 'Zodiac';
+
+-- Create 2000 random tickets with seats and concessions from Jan 2024 to May 2025
+DECLARE @Counter INT = 1;
+
+WHILE @Counter <= 2000
+BEGIN
+    DECLARE @uid INT = (SELECT TOP 1 ID FROM Users ORDER BY NEWID());
+
+    -- Get a random ShowTime within the desired date range, including StartTime
+    DECLARE @stid INT;
+    DECLARE @showStart DATETIME;
+    SELECT TOP 1 
+        @stid = ID,
+        @showStart = StartTime
+    FROM ShowTimes
+    WHERE StartTime BETWEEN '2024-01-01' AND '2025-05-31'
+    ORDER BY NEWID();
+
+    -- Generate PurchaseTime strictly before ShowTime
+    DECLARE @maxOffsetMinutes INT = DATEDIFF(MINUTE, '2024-01-01', @showStart) - 60;
+    DECLARE @purchaseOffsetMinutes INT = ABS(CHECKSUM(NEWID())) % CASE WHEN @maxOffsetMinutes > 0 THEN @maxOffsetMinutes ELSE 1 END;
+    DECLARE @purchaseTime DATETIME = DATEADD(MINUTE, -@purchaseOffsetMinutes, @showStart);
+
+    -- Random Status
+    DECLARE @status NVARCHAR(20);
+    SELECT @status = CASE ABS(CHECKSUM(NEWID())) % 4
+        WHEN 0 THEN 'PENDING'
+        WHEN 1 THEN 'PAID'
+        WHEN 2 THEN 'CONFIRMED'
+        ELSE 'CANCELLED'
+    END;
+
+    -- Insert Ticket with PurchaseTime
+    INSERT INTO Tickets (UserID, ShowTimeID, Status, PurchaseTime)
+    VALUES (@uid, @stid, @status, @purchaseTime);
+
+    DECLARE @tid INT = SCOPE_IDENTITY();
+
+    -- Insert 2–5 TicketSeats
+    DECLARE @seatCount INT = FLOOR(RAND(CHECKSUM(NEWID())) * 4) + 2;
+    INSERT INTO TicketSeats (TicketID, SeatID)
+    SELECT TOP (@seatCount) @tid, ID
+    FROM Seats
+    ORDER BY NEWID();
+
+    -- Insert 2–5 OrderItems
+    DECLARE @itemCount INT = FLOOR(RAND(CHECKSUM(NEWID())) * 4) + 2;
+    INSERT INTO OrderItems (TicketID, TheaterConcessionID, Quantity, PriceAtPurchase)
+    SELECT TOP (@itemCount)
+        @tid,
+        TC.ID,
+        FLOOR(RAND(CHECKSUM(NEWID())) * 3) + 1,
+        TC.Price
+    FROM TheaterConcessions TC
+    WHERE TC.IsAvailable = 1 AND TC.StockLeft > 0
+    ORDER BY NEWID();
+
+    SET @Counter += 1;
+END;
+
+
+-- THEATERIMAGES
+DECLARE @TheaterID INT = 1;
+DECLARE @ImageNum INT = 1;
+
+WHILE @TheaterID <= 10
+BEGIN
+    DECLARE @i INT = 1;
+
+    WHILE @i <= 4
+    BEGIN
+        INSERT INTO TheaterImages (TheaterID, ImageUrl)
+        VALUES (
+            @TheaterID,
+            CAST(@ImageNum AS NVARCHAR) + '.png'
+        );
+
+        SET @i += 1;
+        SET @ImageNum += 1;
+    END
+
+    SET @TheaterID += 1;
+END;
