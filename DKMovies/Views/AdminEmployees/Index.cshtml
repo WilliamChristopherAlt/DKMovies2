@@ -137,29 +137,21 @@ else
     <div class="row" id="employeesContainer">
         @foreach (var employee in Model.Employees)
         {
-            <div class="col-12 mb-4 employee-item">
+            <div class="col-lg-6 col-md-12 mb-4 employee-item">
                 <div class="card border-0 shadow-sm employee-card h-100" onclick="goToDetails(@employee.ID)" style="cursor: pointer;">
                     <!-- Action Buttons -->
                     <div class="position-absolute action-buttons" style="top: 10px; right: 10px; z-index: 10;">
-                        <div class="btn-group">
-                            <a asp-action="Edit" asp-route-id="@employee.ID"
-                               class="btn btn-warning btn-sm"
-                               onclick="event.stopPropagation()"
-                               data-bs-toggle="tooltip" title="Edit Employee">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <button type="button" class="btn btn-danger btn-sm"
-                                    onclick="event.stopPropagation(); confirmDelete(@employee.ID, '@employee.FullName')"
-                                    data-bs-toggle="tooltip" title="Delete Employee">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </div>
+                        <button type="button" class="btn btn-danger rounded-circle btn-sm"
+                                onclick="event.stopPropagation(); confirmDelete(@employee.ID, '@employee.FullName')"
+                                data-bs-toggle="tooltip" title="Delete Employee">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </div>
 
                     <div class="card-body p-3">
-                        <div class="row g-3">
+                        <div class="row g-3 align-items-start">
                             <!-- Employee Avatar -->
-                            <div class="col-md-2 col-sm-3">
+                            <div class="col-3">
                                 <div class="avatar-container">
                                     @{
                                         var avatarPath = string.IsNullOrWhiteSpace(employee.ProfileImagePath)
@@ -173,107 +165,101 @@ else
                                 </div>
                             </div>
 
-                            <!-- Employee Details -->
-                            <div class="col-md-10 col-sm-9">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <h5 class="card-title mb-1 fw-bold text-dark">
-                                            @employee.FullName
-                                        </h5>
-                                        <p class="text-muted mb-0">
-                                            <i class="fas fa-briefcase me-1"></i>@employee.Role?.Name
-                                        </p>
-                                        <p class="text-muted mb-2">
-                                            <i class="fas fa-building me-1"></i>@employee.Theater?.Name
-                                        </p>
+                            <!-- Personal Info -->
+                            <div class="col-3 d-flex flex-column justify-content-center">
+                                <h6 class="card-title mb-2 fw-bold text-dark">
+                                    @employee.FullName
+                                </h6>
+                                <div class="employee-info text-muted">
+                                    <div class="mb-1 d-flex">
+                                        <i class="fas fa-briefcase me-1 flex-shrink-0"></i>
+                                        <span class="text-break">@employee.Role?.Name</span>
                                     </div>
-                                    <div class="text-end">
-                                        @if (employee.Admins?.Any() == true)
-                                        {
-                                            <span class="badge bg-success px-2 py-1 mb-1">Admin</span>
-                                        }
-                                        @{
-                                            var yearsOfService = (DateTime.Now - employee.HireDate).Days / 365.25;
-                                        }
-                                        @if (yearsOfService >= 2)
-                                        {
-                                            <br />
-                                            <span class="badge bg-info text-white px-2 py-1">Senior</span>
-                                        }
-                                        else if ((DateTime.Now - employee.HireDate).Days <= 30)
-                                        {
-                                            <br />
-                                            <span class="badge bg-warning text-dark px-2 py-1">New</span>
-                                        }
+                                    <div class="mb-1 d-flex">
+                                        <i class="fas fa-building me-1 flex-shrink-0"></i>
+                                        <span class="text-break">@employee.Theater?.Name</span>
                                     </div>
-                                </div>
 
-                                <!-- Employee Info Row -->
-                                <div class="row g-2 mb-3">
-                                    @if (!string.IsNullOrWhiteSpace(employee.Email))
-                                    {
-                                        <div class="col-auto">
-                                            <span class="badge bg-light text-dark">
-                                                <i class="fas fa-envelope me-1"></i>@employee.Email
-                                            </span>
-                                        </div>
-                                    }
-                                    @if (!string.IsNullOrWhiteSpace(employee.Phone))
-                                    {
-                                        <div class="col-auto">
-                                            <span class="badge bg-light text-dark">
-                                                <i class="fas fa-phone me-1"></i>@employee.Phone
-                                            </span>
-                                        </div>
-                                    }
                                     @if (!string.IsNullOrWhiteSpace(employee.Gender))
                                     {
-                                        <div class="col-auto">
-                                            <span class="badge bg-secondary">@employee.Gender</span>
+                                        <div class="mb-1 d-flex">
+                                            <i class="fas fa-venus-mars me-1 flex-shrink-0"></i>
+                                            <span class="text-break">@employee.Gender</span>
                                         </div>
                                     }
                                     @if (employee.DateOfBirth.HasValue)
                                     {
-                                        <div class="col-auto">
-                                            <span class="badge bg-light text-dark">
-                                                Age: @((DateTime.Now.Year - employee.DateOfBirth.Value.Year))
-                                            </span>
+                                        <div class="mb-1 d-flex">
+                                            <i class="fas fa-birthday-cake me-1 flex-shrink-0"></i>
+                                            <span class="text-break">@employee.DateOfBirth.Value.ToString("MMM dd, yyyy")</span>
                                         </div>
                                     }
                                 </div>
+                            </div>
 
-                                <!-- Employment Details -->
-                                <div class="row g-2">
-                                    <div class="col-auto">
-                                        <small class="text-muted">
-                                            <i class="fas fa-calendar-alt me-1"></i>
-                                            Hired: @employee.HireDate.ToString("MMM dd, yyyy")
-                                        </small>
-                                    </div>
+                            <!-- Contact Details (Center) -->
+                            <div class="col-3 d-flex flex-column justify-content-center">
+                                <div class="employee-contact text-muted">
                                     @if (!string.IsNullOrWhiteSpace(employee.CitizenID))
                                     {
-                                        <div class="col-auto">
-                                            <small class="text-muted">
-                                                <i class="fas fa-id-card me-1"></i>
-                                                ID: @employee.CitizenID
-                                            </small>
+                                        <div class="mb-1 d-flex">
+                                            <i class="fas fa-id-card me-1 flex-shrink-0"></i>
+                                            <span class="text-break">@employee.CitizenID</span>
                                         </div>
                                     }
+                                    @if (!string.IsNullOrWhiteSpace(employee.Email))
+                                    {
+                                        <div class="mb-1 d-flex">
+                                            <i class="fas fa-envelope me-1 flex-shrink-0"></i>
+                                            <span class="text-break">@employee.Email</span>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(employee.Phone))
+                                    {
+                                        <div class="mb-1 d-flex">
+                                            <i class="fas fa-phone me-1 flex-shrink-0"></i>
+                                            <span class="text-break">@employee.Phone</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Employment Tags -->
+                            <div class="col-3">
+                                <div class="employee-tags">
+                                    @if (employee.Admins?.Any() == true)
+                                    {
+                                        <span class="badge bg-success">Admin</span>
+                                    }
+                                    @{
+                                        var yearsOfService = (DateTime.Now - employee.HireDate).Days / 365.25;
+                                    }
+                                    @if (yearsOfService >= 2)
+                                    {
+                                        <span class="badge bg-info text-white">Senior</span>
+                                    }
+                                    else if ((DateTime.Now - employee.HireDate).Days <= 30)
+                                    {
+                                        <span class="badge bg-warning text-dark">New</span>
+                                    }
+
+                                    <span class="badge bg-light text-dark">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        @employee.HireDate.ToString("MMM yyyy")
+                                    </span>
+
                                     @if (employee.Salary.HasValue)
                                     {
-                                        <div class="col-auto">
-                                            <small class="text-success fw-bold">
-                                                <i class="fas fa-dollar-sign me-1"></i>
-                                                @employee.Salary.Value.ToString("N0")
-                                            </small>
-                                        </div>
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-dollar-sign me-1"></i>
+                                            @employee.Salary.Value.ToString("N0")
+                                        </span>
                                     }
-                                    <div class="col-auto">
-                                        <small class="text-info">
-                                            <i class="fas fa-clock me-1"></i>
-                                            @Math.Round(yearsOfService, 1) years of service
-                                        </small>
-                                    </div>
+
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-clock me-1"></i>
+                                        @Math.Round(yearsOfService, 1)y
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -496,8 +482,8 @@ else
 
     .employee-avatar {
         width: 100%;
-        height: 180px; /* Or another value as needed */
-        object-fit: cover; /* 'contain' if you want full image without cropping */
+        height: 180px;
+        object-fit: cover;
         border-radius: 8px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         transition: transform 0.3s ease;
@@ -520,10 +506,26 @@ else
     .badge {
         font-size: 0.75rem;
         font-weight: 500;
+        padding: 0.25rem 0.5rem;
+        white-space: nowrap;
+        display: inline-block;
+        margin: 0.1rem;
     }
 
     .card-title {
         color: #2c3e50;
+    }
+
+    .employee-info {
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .employee-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.2rem;
+        align-items: flex-start;
     }
 
     .pagination .page-link {
@@ -547,11 +549,11 @@ else
         .avatar-container
 
     {
-        max-width: 80px;
+        max-width: 100px;
     }
 
     .employee-avatar {
-        height: 80px;
+        height: 150px;
     }
 
     .action-buttons {
@@ -562,6 +564,10 @@ else
             padding: 0.25rem 0.5rem;
             font-size: 0.875rem;
         }
+
+    .employee-info {
+        font-size: 0.85rem;
+    }
 
     }
 
@@ -575,6 +581,14 @@ else
 
     .input-group {
         width: 100% !important;
+    }
+
+    .avatar-container {
+        max-width: 80px;
+    }
+
+    .employee-avatar {
+        height: 120px;
     }
 
     }

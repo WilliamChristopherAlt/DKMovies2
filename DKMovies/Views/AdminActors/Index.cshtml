@@ -14,6 +14,7 @@
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
+        height: 100%;
     }
 
         .actor-card:hover {
@@ -24,15 +25,15 @@
     .avatar-container {
         position: relative;
         width: 100%;
-        max-width: 120px;
+        height: 250px; /* Fixed height for consistent layout */
+        overflow: hidden;
+        border-radius: 8px 8px 0 0;
     }
 
     .actor-avatar {
         width: 100%;
-        height: 180px; /* Or another value as needed */
-        object-fit: cover; /* 'contain' if you want full image without cropping */
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        height: 100%;
+        object-fit: cover;
         transition: transform 0.3s ease;
     }
 
@@ -40,20 +41,76 @@
             transform: scale(1.05);
         }
 
-    .action-buttons {
+    .delete-button {
         opacity: 0;
         transition: opacity 0.3s ease;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background-color: #dc3545;
+        color: white;
+        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
     }
 
-        .actor-card:hover .action-buttons,
-        .action-buttons.show {
-            opacity: 1;
+        .delete-button:hover {
+            background-color: #c82333;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
         }
+
+    .actor-card:hover .delete-button {
+        opacity: 1;
+    }
+
+    .actor-details {
+        padding: 1rem;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
 
     .biography-preview {
         font-style: italic;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        flex-grow: 1;
+    }
+
+    .actor-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    .actor-info {
+        text-align: center;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
+    .actor-stats {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: auto;
+        flex-wrap: wrap;
+    }
+
+    .stat-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
     }
 
     .pagination .page-link {
@@ -78,24 +135,6 @@
 
     .dropdown-item.active {
         background-color: #667eea;
-    }
-
-    @@media (max-width: 768px) {
-        .avatar-container {
-            max-width: 80px;
-        }
-
-        .actor-avatar {
-            height: 80px;
-        }
-
-        .d-flex.gap-2.flex-wrap {
-            flex-direction: column;
-        }
-
-        .input-group {
-            width: 100% !important;
-        }
     }
 </style>
 
@@ -228,150 +267,91 @@ else
     </div>
 
     <!-- Actors Grid -->
+    <!-- Actors Grid - 3 columns -->
     <div class="row" id="actorsContainer">
         @foreach (var actor in Model.Actors)
         {
-            <div class="col-12 mb-4 actor-item">
-                <div class="card border-0 shadow-sm actor-card h-100" onclick="goToDetails(@actor.ID)" style="cursor: pointer;">
-                    <!-- Action Buttons -->
-                    <div class="position-absolute action-buttons" style="top: 10px; right: 10px; z-index: 10;">
-                        <div class="btn-group">
-                            <a asp-action="Edit" asp-route-id="@actor.ID"
-                               class="btn btn-warning btn-sm"
-                               onclick="event.stopPropagation()"
-                               data-bs-toggle="tooltip" title="Edit Actor">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <button type="button" class="btn btn-danger btn-sm"
-                                    onclick="event.stopPropagation(); confirmDelete(@actor.ID, '@actor.FullName')"
-                                    data-bs-toggle="tooltip" title="Delete Actor">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </div>
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4 actor-item">
+                <div class="card border-0 shadow-sm actor-card h-100 d-flex flex-column" onclick="goToDetails(@actor.ID)" style="cursor: pointer;">
+                    <!-- Delete Button -->
+                    <button type="button" class="delete-button" onclick="event.stopPropagation(); confirmDelete(@actor.ID, '@actor.FullName')" data-bs-toggle="tooltip" title="Delete Actor">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+
+                    <!-- Actor Avatar - Takes majority of card -->
+                    <div class="avatar-container">
+                        @{
+                            var avatarPath = string.IsNullOrWhiteSpace(actor.ProfileImagePath) ? "default_person.png" : actor.ProfileImagePath.TrimStart('/');
+                            var fullAvatarPath = Url.Content($"~/images/actors/{avatarPath}");
+                        }
+                        <img src="@fullAvatarPath" class="actor-avatar" onerror="this.onerror=null; this.src='@Url.Content("~/images/default_person.png")'" />
                     </div>
 
-                    <div class="card-body p-3">
-                        <div class="row g-3">
-                            <!-- Actor Avatar -->
-                            <div class="col-md-2 col-sm-3">
-                                <div class="avatar-container">
-                                    @{
-                                        var avatarPath = string.IsNullOrWhiteSpace(actor.ProfileImagePath)
-                                        ? "default_person.png"
-                                        : actor.ProfileImagePath.TrimStart('/');
-                                        var fullAvatarPath = Url.Content($"~/images/actors/{avatarPath}");
-                                    }
-                                    <img src="@fullAvatarPath"
-                                         class="img-fluid actor-avatar"
-                                         onerror="this.onerror=null; this.src='@Url.Content("~/images/default_person.png")'" />
+                    <!-- Actor Details - Compact bottom section -->
+                    <div class="actor-details">
+                        <h5 class="actor-name text-dark">@actor.FullName</h5>
+
+                        <div class="actor-info text-muted">
+                            @if (!string.IsNullOrWhiteSpace(actor.PlaceOfBirth))
+                            {
+                                <div class="mb-1">
+                                    <i class="fas fa-map-marker-alt me-1"></i>@actor.PlaceOfBirth
                                 </div>
+                            }
+
+                            @if (actor.DateOfBirth.HasValue)
+                            {
+                                <div class="mb-1">
+                                    <i class="fas fa-calendar-alt me-1"></i>
+                                    Born: @actor.DateOfBirth.Value.ToString("MMM dd, yyyy")
+                                </div>
+                            }
+
+                            @if (actor.MovieActors?.Any() == true)
+                            {
+                                <div class="mb-2">
+                                    <i class="fas fa-film me-1"></i>@actor.MovieActors.Count() movie@(actor.MovieActors.Count() == 1 ? "" : "s")
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Biography Preview -->
+                        @if (!string.IsNullOrWhiteSpace(actor.Biography))
+                        {
+                            <div class="mb-3">
+                                <p class="text-muted mb-0 biography-preview">
+                                    <i class="fas fa-quote-left me-1"></i>
+                                    @actor.Biography
+                                </p>
                             </div>
+                        }
 
-                            <!-- Actor Details -->
-                            <div class="col-md-10 col-sm-9">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <h5 class="card-title mb-1 fw-bold text-dark">
-                                            @actor.FullName
-                                        </h5>
-                                        @if (!string.IsNullOrWhiteSpace(actor.PlaceOfBirth))
-                                        {
-                                            <p class="text-muted mb-0">
-                                                <i class="fas fa-map-marker-alt me-1"></i>@actor.PlaceOfBirth
-                                            </p>
-                                        }
-                                        @if (actor.MovieActors?.Any() == true)
-                                        {
-                                            <p class="text-muted mb-2">
-                                                <i class="fas fa-film me-1"></i>@actor.MovieActors.Count() movie@(actor.MovieActors.Count() == 1 ? "" : "s")
-                                            </p>
-                                        }
-                                    </div>
-                                    <div class="text-end">
-                                        @if (actor.MovieActors?.Any() == true)
-                                        {
-                                            <span class="badge bg-success px-2 py-1 mb-1">Active</span>
-                                        }
-                                        @if (actor.DateOfBirth.HasValue)
-                                        {
+                        <!-- Actor Statistics/Badges -->
+                        <div class="actor-stats">
+                            @if (actor.DateOfBirth.HasValue)
+                            {
+                                var age = DateTime.Now.Year - actor.DateOfBirth.Value.Year;
+                                if (DateTime.Now.DayOfYear < actor.DateOfBirth.Value.DayOfYear)
+                                    age--;
 
-                                            var age = DateTime.Now.Year - actor.DateOfBirth.Value.Year;
-                                            if (DateTime.Now.DayOfYear < actor.DateOfBirth.Value.DayOfYear)
-                                                age--;
-                                            @if (age < 30)
-                                            {
-                                                <br />
-                                                <span class="badge bg-info text-white px-2 py-1">Young</span>
-                                            }
-                                            else if (age > 50)
-                                            {
-                                                <br />
-                                                <span class="badge bg-warning text-dark px-2 py-1">Veteran</span>
-                                            }
-                                        }
-                                    </div>
-                                </div>
+                                <span class="badge bg-light text-dark stat-badge">Age: @age</span>
 
-                                <!-- Actor Info Row -->
-                                <div class="row g-2 mb-3">
-                                    @if (actor.DateOfBirth.HasValue)
-                                    {
-                                        <div class="col-auto">
-                                            <span class="badge bg-light text-dark">
-                                                <i class="fas fa-birthday-cake me-1"></i>
-                                                Age: @{
-                                                    var age = DateTime.Now.Year - actor.DateOfBirth.Value.Year;
-                                                    if (DateTime.Now.DayOfYear < actor.DateOfBirth.Value.DayOfYear)
-                                                        age--;
-                                                }@age
-                                            </span>
-                                        </div>
-                                    }
-                                    @if (actor.MovieActors?.Any() == true)
-                                    {
-                                        <div class="col-auto">
-                                            <span class="badge bg-primary text-white">
-                                                <i class="fas fa-film me-1"></i>@actor.MovieActors.Count() Movies
-                                            </span>
-                                        </div>
-                                    }
-                                </div>
-
-                                <!-- Biography Preview -->
-                                @if (!string.IsNullOrWhiteSpace(actor.Biography))
+                                @if (age < 30)
                                 {
-                                    <div class="row mb-2">
-                                        <div class="col-12">
-                                            <p class="text-muted mb-0 biography-preview">
-                                                <i class="fas fa-quote-left me-1"></i>
-                                                @(actor.Biography.Length > 100 ? actor.Biography.Substring(0, 100) + "..." : actor.Biography)
-                                            </p>
-                                        </div>
-                                    </div>
+                                    <span class="badge bg-info text-white stat-badge">Young</span>
                                 }
+                                else if (age > 50)
+                                {
+                                    <span class="badge bg-warning text-dark stat-badge">Veteran</span>
+                                }
+                            }
 
-                                <!-- Actor Statistics -->
-                                <div class="row g-2">
-                                    @if (actor.DateOfBirth.HasValue)
-                                    {
-                                        <div class="col-auto">
-                                            <small class="text-muted">
-                                                <i class="fas fa-calendar-alt me-1"></i>
-                                                Born: @actor.DateOfBirth.Value.ToString("MMM dd, yyyy")
-                                            </small>
-                                        </div>
-                                    }
-                                    @if (actor.MovieActors?.Any() == true)
-                                    {
-                                        <div class="col-auto">
-                                            <small class="text-success fw-bold">
-                                                <i class="fas fa-trophy me-1"></i>
-                                                @actor.MovieActors.Count() filmography entries
-                                            </small>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
+                            @if (actor.MovieActors?.Any() == true)
+                            {
+                                <span class="badge bg-primary text-white stat-badge">
+                                    @actor.MovieActors.Count() Movies
+                                </span>
+                            }
                         </div>
                     </div>
                 </div>
@@ -549,13 +529,13 @@ else
 
         // Navigate to details
         function goToDetails(actorId) {
-            window.location.href = '/AdminActor/Details/' + actorId;
+            window.location.href = '/AdminActors/Details/' + actorId;
         }
 
         // Delete confirmation function
         function confirmDelete(actorId, actorName) {
             document.getElementById('actorNameToDelete').textContent = actorName;
-            document.getElementById('deleteForm').action = '/AdminActor/Delete/' + actorId;
+            document.getElementById('deleteForm').action = '/AdminActors/Delete/' + actorId;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
 

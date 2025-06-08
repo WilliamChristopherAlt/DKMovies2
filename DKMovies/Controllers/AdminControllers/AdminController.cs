@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using DKMovies.Models.ViewModels;
 using DKMovies.Models.Data;
 using DKMovies.Models.Data.DatabaseModels;
+using Microsoft.Data.SqlClient;
 
 namespace Controllers.Admin
 {
@@ -20,26 +21,158 @@ namespace Controllers.Admin
         }
 
         // GET: Admins Dashboard
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string period = "all")
         {
             try
             {
+                // Define date filter with proper end date
+                DateTime? startDate = null;
+                DateTime? endDate = DateTime.Now; // Always filter up to now
+
+                switch (period)
+                {
+                    case "7days":
+                        startDate = DateTime.Now.AddDays(-7);
+                        break;
+                    case "month":
+                        startDate = DateTime.Now.AddMonths(-1);
+                        break;
+                    case "year":
+                        startDate = DateTime.Now.AddYears(-1);
+                        break;
+                    default: // "all"
+                        startDate = null;
+                        endDate = null;
+                        break;
+                }
+
+                // Get basic counts - these should probably be filtered by date too if needed
                 var totalUsers = await _context.Users.CountAsync();
                 var totalEmployees = await _context.Employees.CountAsync();
                 var totalMovies = await _context.Movies.CountAsync();
                 var totalShowTimes = await _context.ShowTimes.CountAsync();
                 var totalConcessions = await _context.Concessions.CountAsync();
 
-                // Revenue from tickets
-                var ticketRevenue = await _context.Tickets
-                    .Include(t => t.ShowTime)
-                    .SumAsync(t => t.ShowTime.Price);
+                // Get revenue data with proper date filtering
+                var ticketQuery = _context.Tickets
+                    .Where(t => t.Status == TicketStatus.PAID || t.Status == TicketStatus.CONFIRMED);
 
-                // Revenue from concession orders
+                // Apply date filter consistently
+                if (startDate.HasValue)
+                {
+                    ticketQuery = ticketQuery.Where(t => t.PurchaseTime >= startDate.Value && t.PurchaseTime <= endDate.Value);
+                }
+
+                var ticketRevenue = await ticketQuery
+                    .Join(_context.TicketSeats, t => t.ID, ts => ts.TicketID, (t, ts) => new { t, ts })
+                    .Join(_context.ShowTimes, x => x.t.ShowTimeID, st => st.ID, (x, st) => st.Price)
+                    .SumAsync(price => price);
+
                 var concessionRevenue = await _context.OrderItems
-                    .SumAsync(oi => oi.Quantity * oi.PriceAtPurchase);
+                    .Join(_context.Tickets, oi => oi.TicketID, t => t.ID, (oi, t) => new { oi, t })
+                    .Where(x => (x.t.Status == TicketStatus.PAID || x.t.Status == TicketStatus.CONFIRMED))
+                    .Where(x => !startDate.HasValue || (x.t.PurchaseTime >= startDate.Value && x.t.PurchaseTime <= endDate.Value))
+                    .SumAsync(x => x.oi.Quantity * x.oi.PriceAtPurchase);
 
                 var totalRevenue = ticketRevenue + concessionRevenue;
+
+                // Get top movies with consistent date filtering
+                var movieRevenueData = await _context.Movies
+                    .Select(m => new
+                    {
+                        Movie = m,
+                        Revenue = m.ShowTimes
+                            .SelectMany(st => st.Tickets
+                                .Where(t => (t.Status == TicketStatus.PAID || t.Status == TicketStatus.CONFIRMED) &&
+                                           (!startDate.HasValue || (t.PurchaseTime >= startDate.Value && t.PurchaseTime <= endDate.Value))))
+                            .SelectMany(t => t.TicketSeats)
+                            .Sum(ts => (decimal?)ts.Ticket.ShowTime.Price) ?? 0,
+                        TicketsSold = m.ShowTimes
+                            .SelectMany(st => st.Tickets
+                                .Where(t => (t.Status == TicketStatus.PAID || t.Status == TicketStatus.CONFIRMED) &&
+                                           (!startDate.HasValue || (t.PurchaseTime >= startDate.Value && t.PurchaseTime <= endDate.Value))))
+                            .SelectMany(t => t.TicketSeats)
+                            .Count(),
+                        ShowTimesCount = m.ShowTimes.Count(),
+                        AverageRating = m.Reviews.Any() ? m.Reviews.Average(r => r.Rating) : 0,
+                        TotalReviews = m.Reviews.Count()
+                    })
+                    .Where(x => x.Revenue > 0)
+                    .OrderByDescending(x => x.Revenue)
+                    .Take(5)
+                    .ToListAsync();
+
+                // Get genres for top movies
+                var topMovieIDs = movieRevenueData.Select(m => m.Movie.ID).ToList();
+                var movieGenres = await _context.MovieGenres
+                    .Where(mg => topMovieIDs.Contains(mg.MovieID))
+                    .Include(mg => mg.Genre)
+                    .ToListAsync();
+
+                // Get top theaters with consistent date filtering
+                var theaterRevenueData = await _context.Theaters
+                    .Select(th => new
+                    {
+                        Theater = th,
+                        TicketRevenue = th.Auditoriums
+                            .SelectMany(a => a.ShowTimes)
+                            .SelectMany(st => st.Tickets
+                                .Where(t => (t.Status == TicketStatus.PAID || t.Status == TicketStatus.CONFIRMED) &&
+                                           (!startDate.HasValue || (t.PurchaseTime >= startDate.Value && t.PurchaseTime <= endDate.Value))))
+                            .SelectMany(t => t.TicketSeats)
+                            .Sum(ts => (decimal?)ts.Ticket.ShowTime.Price) ?? 0,
+                        ConcessionRevenue = th.TheaterConcessions
+                            .SelectMany(tc => tc.OrderItems)
+                            .Where(oi => (oi.Ticket.Status == TicketStatus.PAID || oi.Ticket.Status == TicketStatus.CONFIRMED) &&
+                                        (!startDate.HasValue || (oi.Ticket.PurchaseTime >= startDate.Value && oi.Ticket.PurchaseTime <= endDate.Value)))
+                            .Sum(oi => (decimal?)(oi.Quantity * oi.PriceAtPurchase)) ?? 0,
+                        TotalTicketsSold = th.Auditoriums
+                            .SelectMany(a => a.ShowTimes)
+                            .SelectMany(st => st.Tickets
+                                .Where(t => (t.Status == TicketStatus.PAID || t.Status == TicketStatus.CONFIRMED) &&
+                                           (!startDate.HasValue || (t.PurchaseTime >= startDate.Value && t.PurchaseTime <= endDate.Value))))
+                            .SelectMany(t => t.TicketSeats)
+                            .Count(),
+                        TotalAuditoriums = th.Auditoriums.Count(),
+                        TotalCapacity = th.Auditoriums.SelectMany(a => a.Seats).Count()
+                    })
+                    .Where(x => x.TicketRevenue + x.ConcessionRevenue > 0)
+                    .OrderByDescending(x => x.TicketRevenue + x.ConcessionRevenue)
+                    .Take(5)
+                    .ToListAsync();
+
+                // Get theater images for top theaters
+                var topTheaterIDs = theaterRevenueData.Select(t => t.Theater.ID).ToList();
+                var theaterImages = await _context.TheaterImages
+                    .Where(ti => topTheaterIDs.Contains(ti.TheaterID))
+                    .ToListAsync();
+
+                // Get top concessions with consistent date filtering
+                var concessionRevenueData = await _context.Concessions
+                    .Select(c => new
+                    {
+                        Concession = c,
+                        Revenue = c.TheaterConcessions
+                            .SelectMany(tc => tc.OrderItems)
+                            .Where(oi => (oi.Ticket.Status == TicketStatus.PAID || oi.Ticket.Status == TicketStatus.CONFIRMED) &&
+                                        (!startDate.HasValue || (oi.Ticket.PurchaseTime >= startDate.Value && oi.Ticket.PurchaseTime <= endDate.Value)))
+                            .Sum(oi => (decimal?)(oi.Quantity * oi.PriceAtPurchase)) ?? 0,
+                        TotalQuantitySold = c.TheaterConcessions
+                            .SelectMany(tc => tc.OrderItems)
+                            .Where(oi => (oi.Ticket.Status == TicketStatus.PAID || oi.Ticket.Status == TicketStatus.CONFIRMED) &&
+                                        (!startDate.HasValue || (oi.Ticket.PurchaseTime >= startDate.Value && oi.Ticket.PurchaseTime <= endDate.Value)))
+                            .Sum(oi => oi.Quantity),
+                        AveragePrice = c.TheaterConcessions
+                            .SelectMany(tc => tc.OrderItems)
+                            .Where(oi => (oi.Ticket.Status == TicketStatus.PAID || oi.Ticket.Status == TicketStatus.CONFIRMED) &&
+                                        (!startDate.HasValue || (oi.Ticket.PurchaseTime >= startDate.Value && oi.Ticket.PurchaseTime <= endDate.Value)))
+                            .Average(oi => (decimal?)oi.PriceAtPurchase) ?? 0,
+                        TheaterCount = c.TheaterConcessions.Count()
+                    })
+                    .Where(x => x.Revenue > 0)
+                    .OrderByDescending(x => x.Revenue)
+                    .Take(5)
+                    .ToListAsync();
 
                 var model = new DashboardViewModel
                 {
@@ -50,9 +183,49 @@ namespace Controllers.Admin
                     TotalConcessions = totalConcessions,
                     TotalRevenue = totalRevenue,
                     TicketRevenue = ticketRevenue,
-                    ConcessionRevenue = concessionRevenue
+                    ConcessionRevenue = concessionRevenue,
+                    CurrentPeriod = period,
+                    TopMovies = movieRevenueData.Select(tm => new DKMovies.Models.ViewModels.TopMovieViewModel
+                    {
+                        MovieTitle = tm.Movie.Title,
+                        Revenue = tm.Revenue,
+                        PosterImagePath = tm.Movie.PosterImagePath,
+                        TicketsSold = tm.TicketsSold,
+                        PriorityScore = tm.Revenue,
+                        ShowTimesCount = tm.ShowTimesCount,
+                        AverageRating = tm.AverageRating,
+                        TotalReviews = tm.TotalReviews,
+                        Genre = string.Join(", ", movieGenres.Where(mg => mg.MovieID == tm.Movie.ID).Select(mg => mg.Genre.Name)),
+                        Duration = tm.Movie.DurationMinutes
+                    }).ToList(),
+                    TopTheaters = theaterRevenueData.Select(tt => new DKMovies.Models.ViewModels.TopTheaterViewModel
+                    {
+                        TheaterName = tt.Theater.Name,
+                        Location = tt.Theater.Location,
+                        TicketRevenue = tt.TicketRevenue,
+                        ConcessionRevenue = tt.ConcessionRevenue,
+                        TotalRevenue = tt.TicketRevenue + tt.ConcessionRevenue,
+                        TotalTicketsSold = tt.TotalTicketsSold,
+                        TotalAuditoriums = tt.TotalAuditoriums,
+                        TotalCapacity = tt.TotalCapacity,
+                        OccupancyRate = tt.TotalCapacity > 0 ? (double)tt.TotalTicketsSold / tt.TotalCapacity * 100 : 0,
+                        TheaterImages = theaterImages
+                            .Where(ti => ti.TheaterID == tt.Theater.ID)
+                            .Select(ti => new DKMovies.Models.ViewModels.TheaterImageViewModel { ImageUrl = ti.ImageUrl })
+                            .ToList()
+                    }).ToList(),
+                    TopConcessions = concessionRevenueData.Select(tc => new DKMovies.Models.ViewModels.TopConcessionViewModel
+                    {
+                        ConcessionName = tc.Concession.Name,
+                        Revenue = tc.Revenue,
+                        QuantitySold = tc.TotalQuantitySold,
+                        ImagePath = tc.Concession.ImagePath,
+                        AveragePrice = tc.AveragePrice,
+                        TheaterCount = tc.TheaterCount,
+                    }).ToList()
                 };
 
+                // ViewBag for backward compatibility
                 ViewBag.TotalUsers = totalUsers;
                 ViewBag.TotalEmployees = totalEmployees;
                 ViewBag.TotalMovies = totalMovies;
@@ -66,6 +239,9 @@ namespace Controllers.Admin
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Dashboard error: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+
                 ViewBag.TotalUsers = 0;
                 ViewBag.TotalEmployees = 0;
                 ViewBag.TotalMovies = 0;
@@ -74,123 +250,129 @@ namespace Controllers.Admin
                 ViewBag.TotalRevenue = 0;
                 ViewBag.TicketRevenue = 0;
                 ViewBag.ConcessionRevenue = 0;
-                ViewBag.ErrorMessage = "Có lỗi xảy ra khi tải dữ liệu dashboard.";
+                ViewBag.ErrorMessage = "An error occurred while loading dashboard data.";
 
-                return View(new DashboardViewModel());
+                return View(new DashboardViewModel
+                {
+                    TopMovies = new List<DKMovies.Models.ViewModels.TopMovieViewModel>(),
+                    TopTheaters = new List<DKMovies.Models.ViewModels.TopTheaterViewModel>(),
+                    TopConcessions = new List<DKMovies.Models.ViewModels.TopConcessionViewModel>(),
+                    CurrentPeriod = period
+                });
             }
         }
 
-        // ===== SỬA MovieDashboard ACTION TRONG AdminsController =====
-        public async Task<IActionResult> Dashboard()
-        {
-            try
-            {
-                // ✅ Create DashboardViewModel with basic stats
-                var model = new DashboardViewModel
-                {
-                    TotalUsers = await _context.Users.CountAsync(),
-                    TotalEmployees = await _context.Employees.CountAsync(),
-                    TotalMovies = await _context.Movies.CountAsync(),
-                    TotalShowTimes = await _context.ShowTimes.CountAsync(),
-                    TotalConcessions = await _context.Concessions.CountAsync(),
-                    TotalRevenue = await _context.Tickets
-                        .Include(t => t.ShowTime)
-                        .SumAsync(t => t.ShowTime.Price),
+        //// ===== SỬA MovieDashboard ACTION TRONG AdminsController =====
+        //public async Task<IActionResult> Dashboard()
+        //{
+        //    try
+        //    {
+        //        // ✅ Create DashboardViewModel with basic stats
+        //        var model = new DashboardViewModel
+        //        {
+        //            TotalUsers = await _context.Users.CountAsync(),
+        //            TotalEmployees = await _context.Employees.CountAsync(),
+        //            TotalMovies = await _context.Movies.CountAsync(),
+        //            TotalShowTimes = await _context.ShowTimes.CountAsync(),
+        //            TotalConcessions = await _context.Concessions.CountAsync(),
+        //            TotalRevenue = await _context.Tickets
+        //                .Include(t => t.ShowTime)
+        //                .SumAsync(t => t.ShowTime.Price),
 
-                    // ✅ Additional metrics
-                    TodayTickets = await _context.Tickets
-                        .Where(t => t.PurchaseTime.Date == DateTime.Today)
-                        .CountAsync(),
-                    ThisMonthRevenue = await _context.Tickets
-                        .Include(t => t.ShowTime)
-                        .Where(t => t.PurchaseTime.Month == DateTime.Now.Month &&
-                                   t.PurchaseTime.Year == DateTime.Now.Year)
-                        .SumAsync(t => t.ShowTime.Price),
-                    ActiveShowtimes = await _context.ShowTimes
-                        .Where(st => st.StartTime > DateTime.Now)
-                        .CountAsync()
-                };
+        //            // ✅ Additional metrics
+        //            TodayTickets = await _context.Tickets
+        //                .Where(t => t.PurchaseTime.Date == DateTime.Today)
+        //                .CountAsync(),
+        //            ThisMonthRevenue = await _context.Tickets
+        //                .Include(t => t.ShowTime)
+        //                .Where(t => t.PurchaseTime.Month == DateTime.Now.Month &&
+        //                           t.PurchaseTime.Year == DateTime.Now.Year)
+        //                .SumAsync(t => t.ShowTime.Price),
+        //            ActiveShowtimes = await _context.ShowTimes
+        //                .Where(st => st.StartTime > DateTime.Now)
+        //                .CountAsync()
+        //        };
 
-                // ✅ Check if we have any tickets first
-                var hasTickets = await _context.Tickets.AnyAsync();
-                if (!hasTickets)
-                {
-                    model.TopMovies = new List<MovieScoreViewModel>();
-                    ViewBag.ErrorMessage = "Chưa có dữ liệu bán vé để phân tích";
-                    return View(model);
-                }
+        //        // ✅ Check if we have any tickets first
+        //        var hasTickets = await _context.Tickets.AnyAsync();
+        //        if (!hasTickets)
+        //        {
+        //            model.TopMovies = new List<MovieScoreViewModel>();
+        //            ViewBag.ErrorMessage = "Chưa có dữ liệu bán vé để phân tích";
+        //            return View(model);
+        //        }
 
-                var movieStats = await _context.Tickets
-                    .Include(t => t.ShowTime)
-                    .ThenInclude(st => st.Movie)
-                    .ThenInclude(m => m.Reviews)
-                    .Where(t => t.ShowTime != null && t.ShowTime.Movie != null)
-                    .GroupBy(t => t.ShowTime.MovieID)
-                    .Select(g => new
-                    {
-                        MovieID = g.Key,
-                        g.First().ShowTime.Movie.Title,
-                        TicketsSold = g.Count(),
-                        TotalRevenue = g.Sum(t => t.ShowTime.Price),
-                        AvgRating = g.First().ShowTime.Movie.Reviews.Any()
-                            ? g.First().ShowTime.Movie.Reviews.Average(r => r.Rating)
-                            : 0
-                    })
-                    .ToListAsync();
+        //        var movieStats = await _context.Tickets
+        //            .Include(t => t.ShowTime)
+        //            .ThenInclude(st => st.Movie)
+        //            .ThenInclude(m => m.Reviews)
+        //            .Where(t => t.ShowTime != null && t.ShowTime.Movie != null)
+        //            .GroupBy(t => t.ShowTime.MovieID)
+        //            .Select(g => new
+        //            {
+        //                MovieID = g.Key,
+        //                g.First().ShowTime.Movie.Title,
+        //                TicketsSold = g.Count(),
+        //                TotalRevenue = g.Sum(t => t.ShowTime.Price),
+        //                AvgRating = g.First().ShowTime.Movie.Reviews.Any()
+        //                    ? g.First().ShowTime.Movie.Reviews.Average(r => r.Rating)
+        //                    : 0
+        //            })
+        //            .ToListAsync();
 
-                if (!movieStats.Any())
-                {
-                    model.TopMovies = new List<MovieScoreViewModel>();
-                    ViewBag.ErrorMessage = "Không có dữ liệu phim để hiển thị";
-                    return View(model);
-                }
+        //        if (!movieStats.Any())
+        //        {
+        //            model.TopMovies = new List<MovieScoreViewModel>();
+        //            ViewBag.ErrorMessage = "Không có dữ liệu phim để hiển thị";
+        //            return View(model);
+        //        }
 
-                double maxRevenue = movieStats.Max(s => (double)s.TotalRevenue);
-                double maxTickets = movieStats.Max(s => (double)s.TicketsSold);
-                double maxRating = 5.0;
+        //        double maxRevenue = movieStats.Max(s => (double)s.TotalRevenue);
+        //        double maxTickets = movieStats.Max(s => (double)s.TicketsSold);
+        //        double maxRating = 5.0;
 
-                var scored = movieStats.Select(s => new MovieScoreViewModel
-                {
-                    MovieID = s.MovieID,
-                    Title = s.Title ?? "Unknown Movie",
-                    TicketsSold = s.TicketsSold,
-                    TotalRevenue = s.TotalRevenue,
-                    AvgRating = s.AvgRating,
-                    PriorityScore = maxRevenue > 0 && maxTickets > 0
-                        ? (double)s.TotalRevenue / maxRevenue * 50
-                          + s.TicketsSold / maxTickets * 40
-                          + s.AvgRating / maxRating * 10
-                        : 0
-                })
-                .OrderByDescending(s => s.PriorityScore)
-                .Take(5)
-                .ToList();
+        //        var scored = movieStats.Select(s => new MovieScoreViewModel
+        //        {
+        //            MovieID = s.MovieID,
+        //            Title = s.Title ?? "Unknown Movie",
+        //            TicketsSold = s.TicketsSold,
+        //            TotalRevenue = s.TotalRevenue,
+        //            AvgRating = s.AvgRating,
+        //            PriorityScore = maxRevenue > 0 && maxTickets > 0
+        //                ? (double)s.TotalRevenue / maxRevenue * 50
+        //                  + s.TicketsSold / maxTickets * 40
+        //                  + s.AvgRating / maxRating * 10
+        //                : 0
+        //        })
+        //        .OrderByDescending(s => s.PriorityScore)
+        //        .Take(5)
+        //        .ToList();
 
-                // ✅ Set TopMovies in the model
-                model.TopMovies = scored;
+        //        // ✅ Set TopMovies in the model
+        //        model.TopMovies = scored;
 
-                // ✅ Calculate average rating
-                model.AverageRating = scored.Any() ? scored.Average(m => m.AvgRating) : 0;
+        //        // ✅ Calculate average rating
+        //        model.AverageRating = scored.Any() ? scored.Average(m => m.AvgRating) : 0;
 
-                return View(model); // Return DashboardViewModel
-            }
-            catch (Exception ex)
-            {
-                var errorModel = new DashboardViewModel
-                {
-                    TotalUsers = 0,
-                    TotalEmployees = 0,
-                    TotalMovies = 0,
-                    TotalShowTimes = 0,
-                    TotalConcessions = 0,
-                    TotalRevenue = 0,
-                    TopMovies = new List<MovieScoreViewModel>()
-                };
+        //        return View(model); // Return DashboardViewModel
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        var errorModel = new DashboardViewModel
+        //        {
+        //            TotalUsers = 0,
+        //            TotalEmployees = 0,
+        //            TotalMovies = 0,
+        //            TotalShowTimes = 0,
+        //            TotalConcessions = 0,
+        //            TotalRevenue = 0,
+        //            TopMovies = new List<MovieScoreViewModel>()
+        //        };
 
-                ViewBag.ErrorMessage = "Có lỗi xảy ra khi tải dữ liệu thống kê phim.";
-                return View(errorModel);
-            }
-        }
+        //        ViewBag.ErrorMessage = "Có lỗi xảy ra khi tải dữ liệu thống kê phim.";
+        //        return View(errorModel);
+        //    }
+        //}
 
         // ===== NEW REAL-TIME TOP 5 MOVIES API =====
         [HttpGet]

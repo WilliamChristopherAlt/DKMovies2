@@ -226,6 +226,7 @@ namespace DKMovies.Models.Data.DatabaseModels
         public ICollection<Auditorium> Auditoriums { get; set; }
         public ICollection<Employee> Employees { get; set; }
         public ICollection<TheaterImage> TheaterImages { get; set; }
+        public ICollection<TheaterConcession> TheaterConcessions { get; set; }
     }
 
     public class TheaterImage

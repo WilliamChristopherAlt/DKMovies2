@@ -7,12 +7,12 @@ using DKMovies.Models.Data.DatabaseModels;
 
 namespace Controllers.Admin
 {
-    public class AdminUserController : Controller
+    public class AdminUsersController : Controller
     {
         private readonly ApplicationDbContext _context;
         private const int PageSize = 20;
 
-        public AdminUserController(ApplicationDbContext context)
+        public AdminUsersController(ApplicationDbContext context)
         {
             _context = context;
         }
