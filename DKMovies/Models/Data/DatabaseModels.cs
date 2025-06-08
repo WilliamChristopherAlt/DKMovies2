@@ -353,6 +353,7 @@ namespace DKMovies.Models.Data.DatabaseModels
         public ICollection<ShowTime> ShowTimes { get; set; }
         public ICollection<Review> Reviews { get; set; }
         public ICollection<MovieActor> MovieActors { get; set; }
+        public ICollection<WatchListSingular> WatchListSingulars { get; set; }
         [NotMapped]
         public IEnumerable<Actor> Actors => MovieActors?.Select(ma => ma.Actor);
     }

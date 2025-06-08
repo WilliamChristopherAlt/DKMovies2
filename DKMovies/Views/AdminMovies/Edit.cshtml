@@ -1,73 +1,384 @@
-﻿@using DKMovies.Models.Data.DatabaseModels;
+@using DKMovies.Models.Data.DatabaseModels
 @model Movie
 @{
-    ViewData["Title"] = "Chỉnh sửa phim";
+    ViewData["Title"] = "Edit Movie";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<h2 class="mb-4 text-dark fw-bold">
-    <i class="fas fa-edit text-warning me-2"></i> Chỉnh sửa thông tin phim
-</h2>
-
-<form asp-action="Edit" method="post">
+<form asp-action="Edit" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
     <input type="hidden" asp-for="ID" />
 
-    <div class="row g-4">
-        <div class="col-md-6">
-            <label asp-for="Title" class="form-label">Tiêu đề phim</label>
-            <input asp-for="Title" class="form-control" />
-            <span asp-validation-for="Title" class="text-danger"></span>
-        </div>
-
-        <div class="col-md-6">
-            <label asp-for="MovieGenres" class="form-label">Thể loại</label>
-            <select asp-for="MovieGenres" class="form-select" asp-items="ViewBag.GenreID">
-                <option value="">-- Chọn thể loại --</option>
-            </select>
-            <span asp-validation-for="MovieGenres" class="text-danger"></span>
-        </div>
-
-        <div class="col-md-4">
-            <label asp-for="DurationMinutes" class="form-label">Thời lượng (phút)</label>
-            <input asp-for="DurationMinutes" class="form-control" type="number" min="1" />
-            <span asp-validation-for="DurationMinutes" class="text-danger"></span>
-        </div>
-
-        <div class="col-md-4">
-            <label asp-for="ReleaseDate" class="form-label">Ngày phát hành</label>
-            <input asp-for="ReleaseDate" class="form-control" type="date" />
-            <span asp-validation-for="ReleaseDate" class="text-danger"></span>
-        </div>
-
-        <div class="col-md-12">
-            <label asp-for="Description" class="form-label">Mô tả phim</label>
-            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
-            <span asp-validation-for="Description" class="text-danger"></span>
-        </div>
-
-        <div class="col-md-6">
-            <label asp-for="PosterImagePath" class="form-label">URL ảnh poster</label>
-            <input asp-for="PosterImagePath" class="form-control" />
-            <span asp-validation-for="PosterImagePath" class="text-danger"></span>
-        </div>
-
-        <div class="col-md-6">
-            <label asp-for="TrailerUrl" class="form-label">URL trailer YouTube</label>
-            <input asp-for="TrailerUrl" class="form-control" />
-            <span asp-validation-for="TrailerUrl" class="text-danger"></span>
+    <div class="mb-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h2 class="mb-1 fw-bold text-dark">
+                    <i class="fas fa-edit text-warning me-2"></i>Edit Movie
+                </h2>
+                <p class="text-muted mb-0">Update movie information</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a asp-action="Details" asp-route-id="@Model.ID" class="btn btn-info btn-sm">
+                    <i class="fas fa-eye me-1"></i>View Details
+                </a>
+                <a asp-action="Delete" asp-route-id="@Model.ID" class="btn btn-danger btn-sm"
+                   onclick="return confirm('Are you sure you want to delete this movie?');">
+                    <i class="fas fa-trash-alt me-1"></i>Delete
+                </a>
+            </div>
         </div>
     </div>
 
-    <div class="mt-4 d-flex justify-content-between">
-        <a asp-action="Index" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Quay lại
-        </a>
-        <button type="submit" class="btn btn-warning">
-            <i class="fas fa-save me-1"></i> Cập nhật
-        </button>
+    <div class="row g-4">
+        <!-- Poster & Basic Info -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="position-relative">
+                    <img src="@Url.Content($"~/assets/images/movie_posters/{(string.IsNullOrWhiteSpace(Model.PosterImagePath) ? "default-poster.jpg" : Model.PosterImagePath.TrimStart('/'))}")"
+                         alt="@Model.Title Poster"
+                         class="card-img-top"
+                         style="height: 500px; object-fit: cover;"
+                         onerror="this.src='/images/default-poster.jpg'" />
+                    <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge bg-primary px-3 py-2">
+                            <i class="fas fa-clock me-1"></i>@Model.DurationMinutes minutes
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Title" class="form-label fw-bold">Movie Title</label>
+                        <input asp-for="Title" class="form-control" placeholder="Enter movie title" />
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">
+                            <i class="fas fa-tags me-2"></i>Basic Info
+                        </h6>
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <label class="form-label small">
+                                    <i class="fas fa-theater-masks me-1"></i>Genres
+                                </label>
+                                <select name="selectedGenres" class="form-select" multiple size="4">
+                                    @if (ViewBag.Genres != null)
+                                    {
+                                        @foreach (var genre in (MultiSelectList)ViewBag.Genres)
+                                        {
+                                            <option value="@genre.Value" selected="@genre.Selected">@genre.Text</option>
+                                        }
+                                    }
+                                </select>
+                                <small class="text-muted">Hold Ctrl/Cmd to select multiple genres</small>
+
+                                <!-- Display current genres as tags -->
+                                <div class="mt-2">
+                                    @if (Model.MovieGenres != null && Model.MovieGenres.Any())
+                                    {
+                                        @foreach (var movieGenre in Model.MovieGenres.Where(mg => mg.Genre != null))
+                                        {
+                                            <span class="badge bg-light text-dark me-1 mb-1">
+                                                <i class="fas fa-theater-masks me-1"></i>@movieGenre.Genre.Name
+                                            </span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted me-1 mb-1">
+                                            <i class="fas fa-theater-masks me-1"></i>No genres selected
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="ReleaseDate" class="form-label small">
+                                    <i class="fas fa-calendar-alt me-1"></i>Release Date
+                                </label>
+                                <input asp-for="ReleaseDate" type="date" class="form-control" />
+                                <span asp-validation-for="ReleaseDate" class="text-danger"></span>
+                                <div class="mt-1">
+                                    <span class="badge bg-light text-dark me-1 mb-1">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        Current: @GetReleaseDate()
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="DurationMinutes" class="form-label small">
+                                    <i class="fas fa-clock me-1"></i>Duration (minutes)
+                                </label>
+                                <input asp-for="DurationMinutes" type="number" class="form-control" placeholder="e.g., 120" />
+                                <span asp-validation-for="DurationMinutes" class="text-danger"></span>
+                            </div>
+                            @if (Model.Rating != null)
+                            {
+                                <div class="col-12">
+                                    <span class="badge bg-warning text-dark me-1 mb-1">
+                                        <i class="fas fa-star me-1"></i>
+                                        Rating: @Model.Rating.Value
+                                    </span>
+                                </div>
+                            }
+                            <div class="col-12">
+                                <label asp-for="LanguageID" class="form-label small">
+                                    <i class="fas fa-language me-1"></i>Language
+                                </label>
+                                <select asp-for="LanguageID" class="form-select" asp-items="ViewBag.Languages">
+                                    <option value="">Select Language</option>
+                                </select>
+                                @if (Model.Language != null)
+                                {
+                                    <div class="mt-1">
+                                        <span class="badge bg-info text-white me-1 mb-1">
+                                            <i class="fas fa-language me-1"></i>
+                                            Current: @Model.Language.Name
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="CountryID" class="form-label small">
+                                    <i class="fas fa-flag me-1"></i>Country
+                                </label>
+                                <select asp-for="CountryID" class="form-select" asp-items="ViewBag.Countries">
+                                    <option value="">Select Country</option>
+                                </select>
+                                @if (Model.Country != null)
+                                {
+                                    <div class="mt-1">
+                                        <span class="badge bg-secondary text-white me-1 mb-1">
+                                            <i class="fas fa-flag me-1"></i>
+                                            Current: @Model.Country.Name
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">
+                            <i class="fas fa-user-tie me-2"></i>Director
+                        </h6>
+                        <div class="d-flex align-items-center mb-2">
+                            @if (Model.Director != null && !string.IsNullOrWhiteSpace(Model.Director.ProfileImagePath))
+                            {
+                                <img src="~/images/directors/@Model.Director.ProfileImagePath"
+                                     asp-append-version="true"
+                                     alt="@Model.Director.FullName"
+                                     class="rounded-circle me-2"
+                                     style="width: 40px; height: 40px; object-fit: cover;" />
+                            }
+                            <div class="flex-grow-1">
+                                <select asp-for="DirectorID" class="form-select" asp-items="ViewBag.Directors">
+                                    <option value="">Select Director</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small">
+                            <i class="fas fa-image me-1"></i>Poster Image
+                        </label>
+                        <input type="file" name="posterImage" class="form-control" accept="image/*" />
+                        <small class="text-muted">Choose a new poster image (optional)</small>
+                        <div class="mt-2">
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-file-image me-1"></i>
+                                Current: @(string.IsNullOrWhiteSpace(Model.PosterImagePath) ? "default-poster.jpg" : Model.PosterImagePath)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description & Trailer -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom-0 py-3">
+                    <h5 class="card-title mb-0 fw-semibold">
+                        <i class="fas fa-align-left text-info me-2"></i>Movie Description
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <textarea asp-for="Description" class="form-control" rows="6" placeholder="Enter movie description..."></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom-0 py-3">
+                    <h5 class="card-title mb-0 fw-semibold">
+                        <i class="fas fa-play-circle text-danger me-2"></i>Trailer
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="TrailerUrl" class="form-label">Trailer URL</label>
+                        <input asp-for="TrailerUrl" class="form-control" placeholder="YouTube URL (e.g., https://www.youtube.com/watch?v=...)" />
+                        <span asp-validation-for="TrailerUrl" class="text-danger"></span>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.TrailerUrl))
+                    {
+                        <div class="ratio ratio-16x9">
+                            <iframe src="@GetEmbedUrl(Model.TrailerUrl)"
+                                    title="@Model.Title Trailer"
+                                    allowfullscreen
+                                    class="rounded"></iframe>
+                        </div>
+                        <div class="mt-3">
+                            <a href="@Model.TrailerUrl" target="_blank" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-external-link-alt me-1"></i>Watch on YouTube
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Statistics (Read-only) -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 py-3">
+                    <h5 class="card-title mb-0 fw-semibold">
+                        <i class="fas fa-chart-bar text-success me-2"></i>Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="bg-light rounded p-3 text-center">
+                                <i class="fas fa-ticket-alt text-primary fs-3 mb-2"></i>
+                                <div class="fw-bold">@(Model.ShowTimes?.SelectMany(st => st.Tickets ?? new List<Ticket>()).Count() ?? 0)</div>
+                                <small class="text-muted">Tickets Sold</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="bg-light rounded p-3 text-center">
+                                <i class="fas fa-clock text-warning fs-3 mb-2"></i>
+                                <div class="fw-bold">@(Model.ShowTimes?.Count() ?? 0)</div>
+                                <small class="text-muted">Showtimes</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="bg-light rounded p-3 text-center">
+                                <i class="fas fa-star text-success fs-3 mb-2"></i>
+                                <div class="fw-bold">@GetAverageRating()</div>
+                                <small class="text-muted">Avg. Rating</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                </a>
+                <div class="d-flex gap-2">
+                    <a asp-action="Details" asp-route-id="@Model.ID" class="btn btn-outline-info">
+                        <i class="fas fa-eye me-2"></i>Cancel & View
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </form>
 
+@functions {
+    private string GetGenreNames()
+    {
+        try
+        {
+            if (Model.MovieGenres != null && Model.MovieGenres.Any())
+            {
+                var genres = Model.MovieGenres
+                    .Where(mg => mg.Genre != null)
+                    .Select(mg => mg.Genre.Name)
+                    .Where(name => !string.IsNullOrEmpty(name));
+
+                return genres.Any() ? string.Join(", ", genres) : "Unknown";
+            }
+
+            return "Unknown";
+        }
+        catch
+        {
+            return "Unknown";
+        }
+    }
+
+    private string GetReleaseDate()
+    {
+        try
+        {
+            if (Model.ReleaseDate.HasValue && Model.ReleaseDate.Value != DateTime.MinValue)
+            {
+                return Model.ReleaseDate.Value.ToString("dd/MM/yyyy");
+            }
+            return "Not updated";
+        }
+        catch
+        {
+            return "Not updated";
+        }
+    }
+
+    private string GetEmbedUrl(string youtubeUrl)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(youtubeUrl))
+                return "";
+
+            if (youtubeUrl.Contains("watch?v="))
+            {
+                return youtubeUrl.Replace("watch?v=", "embed/");
+            }
+            else if (youtubeUrl.Contains("youtu.be/"))
+            {
+                var videoId = youtubeUrl.Split('/').Last();
+                return $"https://www.youtube.com/embed/{videoId}";
+            }
+
+            return youtubeUrl;
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    private string GetAverageRating()
+    {
+        try
+        {
+            if (Model.Reviews != null && Model.Reviews.Any())
+            {
+                var avgRating = Model.Reviews.Average(r => r.Rating);
+                return avgRating.ToString("F1") + "/5";
+            }
+            return "No data";
+        }
+        catch
+        {
+            return "No data";
+        }
+    }
+}
+
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

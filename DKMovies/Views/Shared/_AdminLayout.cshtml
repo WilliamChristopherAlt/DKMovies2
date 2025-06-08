@@ -428,12 +428,19 @@
         </div>
 
         <nav class="sidebar-nav">
-            <div class="nav-section-title">Overview</div>
+            <div class="nav-section-title">Reports & Analytics</div>
             <div class="nav-item">
                 <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Admins" ? "active" : "")"
                    href="@Url.Action("Index", "Admin")">
                     <i class="fas fa-tachometer-alt nav-icon"></i>
                     <span class="nav-text">Dashboard</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Admin" ? "active" : "")"
+                   href="@Url.Action("Index", "AdminManageShowtimes")">
+                    <i class="fas fa-clock nav-icon"></i>
+                    <span class="nav-text">Manage Showtimes</span>
                 </a>
             </div>
 
@@ -492,15 +499,6 @@
                    href="@Url.Action("Index", "AdminConcessions")">
                     <i class="fas fa-utensils nav-icon"></i>
                     <span class="nav-text">Concessions</span>
-                </a>
-            </div>
-
-            <div class="nav-section-title">Reports & Analytics</div>
-            <div class="nav-item">
-                <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Dashboard" ? "active" : "")"
-                   href="@Url.Action("Dashboard", "Admin")">
-                    <i class="fas fa-chart-line nav-icon"></i>
-                    <span class="nav-text">Movie Statistics</span>
                 </a>
             </div>
 

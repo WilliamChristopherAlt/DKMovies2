@@ -481,14 +481,14 @@
 
         // Navigate to edit
         function goToEdit(showtimeId) {
-            window.location.href = '/AdminShowTime/Edit/' + showtimeId;
+            window.location.href = '/AdminShowTimes/Edit/' + showtimeId;
         }
 
         // Delete confirmation function
         function confirmDelete(showTimeId, movieTitle, showTime) {
             $('#movieTitleToDelete').text(movieTitle);
             $('#showTimeToDelete').text(showTime);
-            $('#deleteForm').attr('action', '/AdminShowTime/Delete/' + showTimeId);
+            $('#deleteForm').attr('action', '/AdminShowTimes/Delete/' + showTimeId);
             new bootstrap.Modal($('#deleteModal')).show();
         }
 

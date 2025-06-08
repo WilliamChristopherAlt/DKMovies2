@@ -209,85 +209,50 @@
     <!-- Top 5 Movies by Revenue -->
     <div class="row g-4 mb-4">
         <div class="col-12">
-            <div class="card shadow-lg border-0 overflow-hidden">
-                <div class="card-header bg-gradient bg-primary text-white border-0 py-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white py-3">
                     <div class="d-flex align-items-center justify-content-between">
-                        <h5 class="mb-0 fw-bold">
+                        <h5 class="mb-0 fw-semibold">
                             <i class="fas fa-trophy me-2"></i>Top 5 Movies by Revenue
                         </h5>
-                        <span class="badge bg-white text-primary">
+                        <span class="badge bg-white text-primary fs-7">
                             @(Model.CurrentPeriod == "all" ? "All Time" :
                                 Model.CurrentPeriod == "year" ? "Last Year" :
                                 Model.CurrentPeriod == "month" ? "Last Month" : "Last 7 Days")
                         </span>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-4">
                     @if (Model.TopMovies.Any())
                     {
-                        <div class="row g-0">
+                        <div class="row g-3">
                             @for (int i = 0; i < Model.TopMovies.Count; i++)
                             {
                                 var movie = Model.TopMovies[i];
-                                var rankColors = new[] { "gold", "silver", "#cd7f32", "#4a90e2", "#7b68ee" };
-                                <div class="col-lg-2-4 col-md-6 border-end position-relative">
-                                    <!-- Rank Badge -->
-                                    <div class="position-absolute top-0 start-0 z-index-1">
-                                        <div class="rank-badge" style="background-color: @rankColors[i];">
-                                            #@(i + 1)
-                                        </div>
-                                    </div>
-
-                                    <div class="p-4 text-center h-100 movie-card">
-                                        <div class="mb-3 movie-poster-container">
+                                <div class="col-lg col-md-6">
+                                    <div class="revenue-item">
+                                        <div class="rank-number">@(i + 1)</div>
+                                        <div class="item-image">
                                             @if (!string.IsNullOrEmpty(movie.PosterImagePath))
                                             {
-                                                <img src="~/images/movie_posters/@movie.PosterImagePath" alt="@movie.MovieTitle"
-                                                     class="movie-poster rounded-3 shadow-sm" />
+                                                <img src="~/images/movie_posters/@movie.PosterImagePath" alt="@movie.MovieTitle" />
                                             }
                                             else
                                             {
-                                                <div class="movie-poster bg-light rounded-3 d-flex align-items-center justify-content-center shadow-sm">
-                                                    <i class="fas fa-film text-muted fs-1"></i>
+                                                <div class="placeholder-image">
+                                                    <i class="fas fa-film"></i>
                                                 </div>
                                             }
                                         </div>
-
-                                        <div class="movie-info">
-                                            <h6 class="mb-2 fw-bold text-dark movie-title" title="@movie.MovieTitle">
-                                                @movie.MovieTitle
-                                            </h6>
-
-                                            @if (!string.IsNullOrEmpty(movie.Genre))
-                                            {
-                                                <small class="text-muted d-block mb-2">
-                                                    <i class="fas fa-tags me-1"></i>@movie.Genre
-                                                </small>
-                                            }
-
-                                            <div class="revenue-badge mb-3">
-                                                <i class="fas fa-dollar-sign me-1"></i>
-                                                <span class="fw-bold">@String.Format("{0:N0}", movie.Revenue)</span>
-                                            </div>
-
-                                            <div class="movie-stats">
-                                                <div class="stat-item">
-                                                    <i class="fas fa-ticket-alt text-primary"></i>
-                                                    <small class="ms-1">@movie.TicketsSold tickets</small>
-                                                </div>
-
+                                        <div class="item-content">
+                                            <h6 class="item-title">@movie.MovieTitle</h6>
+                                            <div class="revenue-amount">$@String.Format("{0:N0}", movie.Revenue)</div>
+                                            <div class="item-stats">
+                                                <span><i class="fas fa-ticket-alt"></i> @movie.TicketsSold</span>
                                                 @if (movie.AverageRating > 0)
                                                 {
-                                                    <div class="stat-item">
-                                                        <i class="fas fa-star text-warning"></i>
-                                                        <small class="ms-1">@movie.AverageRating.ToString("F1") (@movie.TotalReviews reviews)</small>
-                                                    </div>
+                                                    <span><i class="fas fa-star"></i> @movie.AverageRating.ToString("F1")</span>
                                                 }
-
-                                                <div class="stat-item">
-                                                    <i class="fas fa-clock text-info"></i>
-                                                    <small class="ms-1">@movie.ShowTimesCount showtimes</small>
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -298,9 +263,8 @@
                     else
                     {
                         <div class="empty-state">
-                            <i class="fas fa-film fs-1 text-muted mb-3"></i>
-                            <h6 class="text-muted">No movie revenue data available</h6>
-                            <small class="text-muted">Movies will appear here once tickets are sold</small>
+                            <i class="fas fa-film text-muted mb-3"></i>
+                            <p class="text-muted mb-0">No movie revenue data available</p>
                         </div>
                     }
                 </div>
@@ -311,87 +275,48 @@
     <!-- Top 5 Theaters by Revenue -->
     <div class="row g-4 mb-4">
         <div class="col-12">
-            <div class="card shadow-lg border-0 overflow-hidden">
-                <div class="card-header bg-gradient bg-success text-white border-0 py-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white py-3">
                     <div class="d-flex align-items-center justify-content-between">
-                        <h5 class="mb-0 fw-bold">
+                        <h5 class="mb-0 fw-semibold">
                             <i class="fas fa-building me-2"></i>Top 5 Theaters by Revenue
                         </h5>
-                        <span class="badge bg-white text-success">
+                        <span class="badge bg-white text-success fs-7">
                             @(Model.CurrentPeriod == "all" ? "All Time" :
                                 Model.CurrentPeriod == "year" ? "Last Year" :
                                 Model.CurrentPeriod == "month" ? "Last Month" : "Last 7 Days")
                         </span>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-4">
                     @if (Model.TopTheaters.Any())
                     {
-                        <div class="row g-0">
+                        <div class="row g-3">
                             @for (int i = 0; i < Model.TopTheaters.Count; i++)
                             {
                                 var theater = Model.TopTheaters[i];
-                                var rankColors = new[] { "gold", "silver", "#cd7f32", "#4a90e2", "#7b68ee" };
-                                <div class="col-lg-2-4 col-md-6 border-end position-relative">
-                                    <!-- Rank Badge -->
-                                    <div class="position-absolute top-0 start-0 z-index-1">
-                                        <div class="rank-badge" style="background-color: @rankColors[i];">
-                                            #@(i + 1)
-                                        </div>
-                                    </div>
-
-                                    <div class="p-4 text-center h-100 theater-card">
-                                        <div class="mb-3 theater-image-container">
+                                <div class="col-lg col-md-6">
+                                    <div class="revenue-item">
+                                        <div class="rank-number">@(i + 1)</div>
+                                        <div class="item-image">
                                             @if (theater.TheaterImages.Any())
                                             {
-                                                <img src="@theater.TheaterImages.First().ImageUrl" alt="@theater.TheaterName"
-                                                     class="theater-image rounded-3 shadow-sm" />
+                                                <img src="~/images/theaters/@theater.TheaterImages.First().ImageUrl" alt="@theater.TheaterName" />
                                             }
                                             else
                                             {
-                                                <div class="theater-image bg-light rounded-3 d-flex align-items-center justify-content-center shadow-sm">
-                                                    <i class="fas fa-building text-muted fs-1"></i>
+                                                <div class="placeholder-image">
+                                                    <i class="fas fa-building"></i>
                                                 </div>
                                             }
                                         </div>
-
-                                        <div class="theater-info">
-                                            <h6 class="mb-2 fw-bold text-dark theater-title" title="@theater.TheaterName">
-                                                @theater.TheaterName
-                                            </h6>
-
-                                            @if (!string.IsNullOrEmpty(theater.Location))
-                                            {
-                                                <small class="text-muted d-block mb-2">
-                                                    <i class="fas fa-map-marker-alt me-1"></i>@theater.Location
-                                                </small>
-                                            }
-
-                                            <div class="revenue-badge mb-3">
-                                                <i class="fas fa-dollar-sign me-1"></i>
-                                                <span class="fw-bold">@String.Format("{0:N0}", theater.TotalRevenue)</span>
-                                            </div>
-
-                                            <div class="theater-stats">
-                                                <div class="stat-item">
-                                                    <i class="fas fa-ticket-alt text-primary"></i>
-                                                    <small class="ms-1">@theater.TotalTicketsSold tickets</small>
-                                                </div>
-
-                                                <div class="stat-item">
-                                                    <i class="fas fa-door-open text-info"></i>
-                                                    <small class="ms-1">@theater.TotalAuditoriums auditoriums</small>
-                                                </div>
-
-                                                <div class="stat-item">
-                                                    <i class="fas fa-chair text-warning"></i>
-                                                    <small class="ms-1">@theater.TotalCapacity seats</small>
-                                                </div>
-
-                                                <div class="stat-item">
-                                                    <i class="fas fa-chart-line text-success"></i>
-                                                    <small class="ms-1">@theater.OccupancyRate.ToString("F1")% occupancy</small>
-                                                </div>
+                                        <div class="item-content">
+                                            <h6 class="item-title">@theater.TheaterName</h6>
+                                            <div class="item-location">@theater.Location</div>
+                                            <div class="revenue-amount">$@String.Format("{0:N0}", theater.TotalRevenue)</div>
+                                            <div class="item-stats">
+                                                <span><i class="fas fa-ticket-alt"></i> @theater.TotalTicketsSold</span>
+                                                <span><i class="fas fa-chair"></i> @theater.TotalCapacity</span>
                                             </div>
                                         </div>
                                     </div>
@@ -402,9 +327,8 @@
                     else
                     {
                         <div class="empty-state">
-                            <i class="fas fa-building fs-1 text-muted mb-3"></i>
-                            <h6 class="text-muted">No theater revenue data available</h6>
-                            <small class="text-muted">Theaters will appear here once tickets are sold</small>
+                            <i class="fas fa-building text-muted mb-3"></i>
+                            <p class="text-muted mb-0">No theater revenue data available</p>
                         </div>
                     }
                 </div>
@@ -415,82 +339,48 @@
     <!-- Top 5 Concessions by Revenue -->
     <div class="row g-4 mb-4">
         <div class="col-12">
-            <div class="card shadow-lg border-0 overflow-hidden">
-                <div class="card-header bg-gradient bg-warning text-white border-0 py-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-warning text-white py-3">
                     <div class="d-flex align-items-center justify-content-between">
-                        <h5 class="mb-0 fw-bold">
+                        <h5 class="mb-0 fw-semibold">
                             <i class="fas fa-utensils me-2"></i>Top 5 Concessions by Revenue
                         </h5>
-                        <span class="badge bg-white text-warning">
+                        <span class="badge bg-white text-warning fs-7">
                             @(Model.CurrentPeriod == "all" ? "All Time" :
                                 Model.CurrentPeriod == "year" ? "Last Year" :
                                 Model.CurrentPeriod == "month" ? "Last Month" : "Last 7 Days")
                         </span>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-4">
                     @if (Model.TopConcessions.Any())
                     {
-                        <div class="row g-0">
+                        <div class="row g-3">
                             @for (int i = 0; i < Model.TopConcessions.Count; i++)
                             {
                                 var concession = Model.TopConcessions[i];
-                                var rankColors = new[] { "gold", "silver", "#cd7f32", "#4a90e2", "#7b68ee" };
-                                <div class="col-lg-2-4 col-md-6 border-end position-relative">
-                                    <!-- Rank Badge -->
-                                    <div class="position-absolute top-0 start-0 z-index-1">
-                                        <div class="rank-badge" style="background-color: @rankColors[i];">
-                                            #@(i + 1)
-                                        </div>
-                                    </div>
-
-                                    <div class="p-4 text-center h-100 concession-card">
-                                        <div class="mb-3 concession-image-container">
+                                <div class="col-lg col-md-6">
+                                    <div class="revenue-item">
+                                        <div class="rank-number">@(i + 1)</div>
+                                        <div class="item-image">
                                             @if (!string.IsNullOrEmpty(concession.ImagePath))
                                             {
-                                                <img src="~/images/concessions/@concession.ImagePath" alt="@concession.ConcessionName"
-                                                     class="concession-image rounded-3 shadow-sm" />
+                                                <img src="~/images/concessions/@concession.ImagePath" alt="@concession.ConcessionName" />
                                             }
                                             else
                                             {
-                                                <div class="concession-image bg-light rounded-3 d-flex align-items-center justify-content-center shadow-sm">
-                                                    <i class="fas fa-utensils text-muted fs-1"></i>
+                                                <div class="placeholder-image">
+                                                    <i class="fas fa-utensils"></i>
                                                 </div>
                                             }
                                         </div>
-
-                                        <div class="concession-info">
-                                            <h6 class="mb-2 fw-bold text-dark concession-title" title="@concession.ConcessionName">
-                                                @concession.ConcessionName
-                                            </h6>
-
-                                            @if (!string.IsNullOrEmpty(concession.Category))
-                                            {
-                                                <small class="text-muted d-block mb-2">
-                                                    <i class="fas fa-tag me-1"></i>@concession.Category
-                                                </small>
-                                            }
-
-                                            <div class="revenue-badge mb-3">
-                                                <i class="fas fa-dollar-sign me-1"></i>
-                                                <span class="fw-bold">@String.Format("{0:N0}", concession.Revenue)</span>
-                                            </div>
-
-                                            <div class="concession-stats">
-                                                <div class="stat-item">
-                                                    <i class="fas fa-shopping-cart text-primary"></i>
-                                                    <small class="ms-1">@concession.QuantitySold sold</small>
-                                                </div>
-
-                                                <div class="stat-item">
-                                                    <i class="fas fa-dollar-sign text-success"></i>
-                                                    <small class="ms-1">@String.Format("${0:N2}", concession.AveragePrice) avg</small>
-                                                </div>
-
-                                                <div class="stat-item">
-                                                    <i class="fas fa-building text-info"></i>
-                                                    <small class="ms-1">@concession.TheaterCount theaters</small>
-                                                </div>
+                                        <div class="item-content">
+                                            <h6 class="item-title">@concession.ConcessionName</h6>
+                                            <div class="item-category">@concession.Category</div>
+                                            <div class="revenue-amount">$@String.Format("{0:N0}", concession.Revenue)</div>
+                                            <div class="item-stats">
+                                                <span><i class="fas fa-shopping-cart"></i> @concession.QuantitySold</span>
+                                                <span><i class="fas fa-dollar-sign"></i> $@String.Format("{0:N2}", concession.AveragePrice)</span>
                                             </div>
                                         </div>
                                     </div>
@@ -501,9 +391,8 @@
                     else
                     {
                         <div class="empty-state">
-                            <i class="fas fa-utensils fs-1 text-muted mb-3"></i>
-                            <h6 class="text-muted">No concession revenue data available</h6>
-                            <small class="text-muted">Concessions will appear here once orders are placed</small>
+                            <i class="fas fa-utensils text-muted mb-3"></i>
+                            <p class="text-muted mb-0">No concession revenue data available</p>
                         </div>
                     }
                 </div>
@@ -550,197 +439,295 @@
 </div>
 
 <style>
+    /* Modern Revenue Analytics Styles */
     .card {
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-radius: 12px;
     }
 
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
         }
 
-    .bg-gradient {
-        background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-primary-dark) 100%);
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+        border: none;
     }
 
-        .bg-gradient.bg-info {
-            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-        }
-
-        .bg-gradient.bg-success {
-            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
-        }
-
-        .bg-gradient.bg-warning {
-            background: linear-gradient(135deg, #ffc107 0%, #d39e00 100%);
-        }
-
-        .bg-gradient.bg-danger {
-            background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%);
-        }
-
-        .bg-gradient.bg-secondary {
-            background: linear-gradient(135deg, #6c757d 0%, #545b62 100%);
-        }
-
-        .bg-gradient.bg-dark {
-            background: linear-gradient(135deg, #343a40 0%, #1d2124 100%);
-        }
-
-        .bg-gradient.bg-primary {
-            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-        }
-
-    /* Rank badges */
-    .rank-badge {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        color: white;
-        font-weight: bold;
-        font-size: 0.8rem;
-        padding: 4px 8px;
-        border-radius: 50px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        z-index: 2;
-        min-width: 30px;
+    /* Revenue Item Layout */
+    .revenue-item {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        padding: 20px;
+        height: 100%;
+        transition: all 0.3s ease;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         text-align: center;
     }
 
-    /* Movie, Theater, and Concession Cards */
-    .movie-card, .theater-card, .concession-card {
-        transition: all 0.3s ease;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-
-        .movie-card:hover, .theater-card:hover, .concession-card:hover {
+        .revenue-item:hover {
             transform: translateY(-3px);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            border-color: #dee2e6;
         }
 
-    /* Image containers */
-    .movie-poster-container, .theater-image-container, .concession-image-container {
-        height: 120px;
-        width: 100%;
-        overflow: hidden;
+    /* Rank Number */
+    .rank-number {
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+        box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+        z-index: 2;
+    }
+
+    .revenue-item:nth-child(1) .rank-number {
+        background: linear-gradient(135deg, #ffd700, #ffb300);
+        box-shadow: 0 2px 8px rgba(255,215,0,0.4);
+    }
+
+    .revenue-item:nth-child(2) .rank-number {
+        background: linear-gradient(135deg, #c0c0c0, #a0a0a0);
+        box-shadow: 0 2px 8px rgba(192,192,192,0.4);
+    }
+
+    .revenue-item:nth-child(3) .rank-number {
+        background: linear-gradient(135deg, #cd7f32, #b8621b);
+        box-shadow: 0 2px 8px rgba(205,127,50,0.4);
+    }
+
+    /* Image Container - Made Much Larger */
+    .item-image {
+        width: 120px;
+        height: 160px;
         border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        flex-shrink: 0;
     }
 
-    .movie-poster, .theater-image, .concession-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.3s ease;
-    }
+        .item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
 
-        .movie-poster:hover, .theater-image:hover, .concession-image:hover {
+        .item-image:hover img {
             transform: scale(1.05);
         }
 
-    /* Title styling */
-    .movie-title, .theater-title, .concession-title {
-        font-size: 0.9rem;
-        line-height: 1.2;
-        max-height: 2.4em;
+    .placeholder-image {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-size: 2.5rem;
+        border-radius: 8px;
+    }
+
+    /* Content Styling */
+    .item-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .item-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #212529;
+        margin: 0;
+        line-height: 1.3;
+        max-height: 2.6em;
         overflow: hidden;
         text-overflow: ellipsis;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
+        text-align: center;
     }
 
-    /* Revenue badge */
-    .revenue-badge {
-        background: linear-gradient(135deg, #28a745, #20c997);
-        color: white;
-        padding: 6px 12px;
-        border-radius: 20px;
+    .item-location,
+    .item-category {
         font-size: 0.85rem;
-        box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+        color: #6c757d;
+        margin: 0;
     }
 
-    /* Stats styling */
-    .movie-stats, .theater-stats, .concession-stats {
+    /* Revenue Amount - Toned Down */
+    .revenue-amount {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #495057;
+        background: #f8f9fa;
+        padding: 4px 10px;
+        border-radius: 12px;
+        margin: 6px 0;
+        border: 1px solid #e9ecef;
+    }
+
+    /* Stats */
+    .item-stats {
         display: flex;
-        flex-direction: column;
-        gap: 4px;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
         margin-top: auto;
     }
 
-    .stat-item {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.75rem;
-        color: #6c757d;
-    }
-
-        .stat-item i {
-            font-size: 0.7rem;
-            width: 12px;
+        .item-stats span {
+            font-size: 0.75rem;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
-    /* Empty state styling */
+        .item-stats i {
+            color: #007bff;
+            font-size: 0.7rem;
+        }
+
+        .item-stats span:nth-child(2) i {
+            color: #ffc107;
+        }
+
+        .item-stats span:nth-child(3) i {
+            color: #28a745;
+        }
+
+    /* Empty State */
     .empty-state {
         text-align: center;
         padding: 60px 20px;
         color: #6c757d;
     }
 
-    /* Responsive grid for 5 columns */
-    .col-lg-2-4 {
-        flex: 0 0 auto;
-        width: 20%;
-    }
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
 
+    /* Responsive Design */
     @@media (max-width: 1199.98px) {
-        .col-lg-2-4
+        .col-lg
 
     {
+        flex: 0 0 auto;
         width: 33.333333%;
     }
 
     }
 
     @@media (max-width: 991.98px) {
-        .col-lg-2-4
+        .col-lg
 
     {
+        flex: 0 0 auto;
         width: 50%;
+    }
+
+    .revenue-item {
+        padding: 16px;
+    }
+
+    .item-image {
+        width: 100px;
+        height: 140px;
     }
 
     }
 
     @@media (max-width: 767.98px) {
-        .col-lg-2-4
+        .col-lg
 
     {
+        flex: 0 0 auto;
         width: 100%;
     }
 
-    .rank-badge {
-        top: 5px;
-        left: 5px;
-        font-size: 0.7rem;
-        padding: 3px 6px;
+    .revenue-item {
+        padding: 20px;
+        flex-direction: row;
+        text-align: left;
+        align-items: flex-start;
     }
 
-    .movie-poster-container, .theater-image-container, .concession-image-container {
-        height: 100px;
+    .item-image {
+        width: 80px;
+        height: 110px;
+        margin-right: 15px;
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .item-content {
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .rank-number {
+        top: 15px;
+        left: 15px;
     }
 
     }
 
-    /* Quick actions hover effects */
-    .btn-outline-primary:hover, .btn-outline-success:hover,
-    .btn-outline-info:hover, .btn-outline-warning:hover {
+    /* Badge Improvements */
+    .fs-7 {
+        font-size: 0.875rem;
+    }
+
+    /* Hover Effects for Cards */
+    .btn-outline-primary:hover,
+    .btn-outline-success:hover,
+    .btn-outline-info:hover,
+    .btn-outline-warning:hover {
         transform: translateY(-1px);
         box-shadow: 0 3px 10px rgba(0,0,0,0.1);
     }
 
-    /* Card footer hover effects */
-    .card-footer:hover {
-        background-color: #f8f9fa !important;
+    /* Enhanced Card Headers */
+    .bg-primary {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
     }
+
+    .bg-success {
+        background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+    }
+
+    .bg-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #d39e00 100%) !important;
+    }
+
+    .bg-info {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+    }
+
+    .bg-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%) !important;
+    }
+</style>
