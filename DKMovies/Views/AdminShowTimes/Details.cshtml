@@ -1,4 +1,5 @@
-﻿@model DKMovies.Models.Data.DatabaseModels.Movie
+﻿@using DKMovies.Models.Data.DatabaseModels
+@model DKMovies.Models.Data.DatabaseModels.Movie
 @{
     ViewData["Title"] = "Chi tiết phim";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
@@ -163,7 +164,7 @@
         }
 
         <!-- Statistics Card -->
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white border-bottom-0 py-3">
                 <h5 class="card-title mb-0 fw-semibold">
                     <i class="fas fa-chart-bar text-success me-2"></i>Thống kê
@@ -174,24 +175,120 @@
                     <div class="col-md-4">
                         <div class="bg-light rounded p-3 text-center">
                             <i class="fas fa-ticket-alt text-primary fs-3 mb-2"></i>
-                            @* <div class="fw-bold">@(Model.ShowTimes?.SelectMany(st => st.Tickets ?? new List<Ticket>()).Count() ?? 0)</div> *@
+                            <div class="fw-bold" id="sold-tickets-count">@GetSoldTicketsCount()</div>
                             <small class="text-muted">Vé đã bán</small>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="bg-light rounded p-3 text-center">
                             <i class="fas fa-clock text-warning fs-3 mb-2"></i>
-                            <div class="fw-bold">@(Model.ShowTimes?.Count() ?? 0)</div>
+                            <div class="fw-bold" id="total-showtimes">@GetShowTimesCount()</div>
                             <small class="text-muted">Suất chiếu</small>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="bg-light rounded p-3 text-center">
-                            <i class="fas fa-star text-success fs-3 mb-2"></i>
-                            <div class="fw-bold">@GetAverageRating()</div>
-                            <small class="text-muted">Đánh giá TB</small>
+                            <i class="fas fa-dollar-sign text-success fs-3 mb-2"></i>
+                            <div class="fw-bold" id="total-revenue">@GetTotalRevenue()</div>
+                            <small class="text-muted">Doanh thu</small>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danh sách vé đã bán -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom-0 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0 fw-semibold">
+                        <i class="fas fa-list text-info me-2"></i>Danh sách vé đã bán
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-success" onclick="exportTicketsData()">
+                            <i class="fas fa-download me-1"></i>Xuất Excel
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshTicketsList()">
+                            <i class="fas fa-sync-alt me-1"></i>Làm mới
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="tickets-loading" class="text-center py-4" style="display: none;">
+                    <i class="fas fa-spinner fa-spin text-primary fs-4"></i>
+                    <p class="mt-2 text-muted">Đang tải danh sách vé...</p>
+                </div>
+
+                <div id="tickets-list">
+                    @if (GetSoldTicketsList().Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="tickets-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Mã vé</th>
+                                        <th>Suất chiếu</th>
+                                        <th>Rạp - Phòng</th>
+                                        <th>Ghế</th>
+                                        <th>Giá vé</th>
+                                        <th>Trạng thái</th>
+                                        <th>Khách hàng</th>
+                                        <th>Ngày mua</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var ticket in GetSoldTicketsList())
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-primary">#@ticket.ID</span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-medium">@ticket.ShowTime?.StartTime.ToString("dd/MM/yyyy")</div>
+                                                <small class="text-muted">@ticket.ShowTime?.StartTime.ToString("HH:mm")</small>
+                                            </td>
+                                            <td>
+                                                <div class="fw-medium">@ticket.ShowTime?.Auditorium?.Theater?.Name</div>
+                                                <small class="text-muted">Phòng @ticket.ShowTime?.Auditorium?.Name</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">@ticket.SeatNames</span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold text-success">@GetTicketPrice(ticket.TotalPrice)</span>
+                                            </td>
+                                            <td>
+                                                @Html.Raw(GetTicketStatusBadge(ticket.Status))
+                                            </td>
+                                            <td>
+                                                <div class="fw-medium">@ticket.CustomerName</div>
+                                            </td>
+                                            <td>
+                                                <small>@ticket.PurchaseTime.ToString("dd/MM/yyyy HH:mm")</small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-info btn-sm" onclick="viewTicketDetails(@ticket.ID)">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-ticket-alt text-muted fs-1 mb-3"></i>
+                            <h5 class="text-muted">Chưa có vé nào được bán</h5>
+                            <p class="text-muted mb-0">Vé sẽ hiển thị ở đây khi có khách hàng đặt vé cho phim này.</p>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -206,7 +303,7 @@
                 <i class="fas fa-arrow-left me-2"></i>Quay lại danh sách
             </a>
             <div class="d-flex gap-2">
-                <a asp-controller="AdminShowTime" asp-action="Create" asp-route-movieId="@Model.ID"
+                <a asp-controller="ShowTimes" asp-action="Create" asp-route-movieId="@Model.ID"
                    class="btn btn-success">
                     <i class="fas fa-calendar-plus me-2"></i>Tạo suất chiếu
                 </a>
@@ -282,6 +379,124 @@
         }
     }
 
+    private int GetSoldTicketsCount()
+    {
+        try
+        {
+            if (Model.ShowTimes != null)
+            {
+                return Model.ShowTimes
+                    .Where(st => st.Tickets != null)
+                    .SelectMany(st => st.Tickets)
+                    .Where(t => t.Status == TicketStatus.PAID || t.Status == TicketStatus.CONFIRMED)
+                    .Count();
+            }
+            return 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private int GetShowTimesCount()
+    {
+        try
+        {
+            return Model.ShowTimes?.Count() ?? 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private string GetTotalRevenue()
+    {
+        try
+        {
+            if (Model.ShowTimes != null)
+            {
+                var totalRevenue = Model.ShowTimes
+                    .Where(st => st.Tickets != null)
+                    .SelectMany(st => st.Tickets)
+                    .Where(t => t.Status == TicketStatus.PAID || t.Status == TicketStatus.CONFIRMED)
+                    .Sum(t => t.TotalPrice);
+
+                return totalRevenue.ToString("N0") + " VND";
+            }
+            return "0 VND";
+        }
+        catch
+        {
+            return "0 VND";
+        }
+    }
+
+    private IEnumerable<dynamic> GetSoldTicketsList()
+    {
+        try
+        {
+            if (Model.ShowTimes != null)
+            {
+                return Model.ShowTimes
+                    .Where(st => st.Tickets != null)
+                    .SelectMany(st => st.Tickets)
+                    .Where(t => t.Status == TicketStatus.PAID || t.Status == TicketStatus.CONFIRMED)
+                    .OrderByDescending(t => t.PurchaseTime)
+                    .Take(50)
+                    .Select(t => new
+                    {
+                        ID = t.ID,
+                        ShowTime = t.ShowTime,
+                        SeatNames = t.TicketSeats != null && t.TicketSeats.Any()
+                            ? string.Join(", ", t.TicketSeats.Select(ts => ts.Seat.RowLabel + ts.Seat.SeatNumber))
+                            : "N/A",
+                        TotalPrice = t.TotalPrice,
+                        Status = t.Status.ToString(),
+                        PurchaseTime = t.PurchaseTime,
+                        CustomerName = t.User?.FullName ?? "N/A"
+                    });
+            }
+            return new List<dynamic>();
+        }
+        catch
+        {
+            return new List<dynamic>();
+        }
+    }
+
+    private string GetTicketPrice(decimal totalPrice)
+    {
+        try
+        {
+            return totalPrice.ToString("N0") + " VND";
+        }
+        catch
+        {
+            return "0 VND";
+        }
+    }
+
+    private string GetTicketStatusBadge(string status)
+    {
+        try
+        {
+            return status?.ToUpper() switch
+            {
+                "PAID" => "<span class=\"badge bg-success\">Đã thanh toán</span>",
+                "CONFIRMED" => "<span class=\"badge bg-success\">Đã xác nhận</span>",
+                "PENDING" => "<span class=\"badge bg-warning\">Chờ xử lý</span>",
+                "CANCELLED" => "<span class=\"badge bg-danger\">Đã hủy</span>",
+                _ => "<span class=\"badge bg-secondary\">Không rõ</span>"
+            };
+        }
+        catch
+        {
+            return "<span class=\"badge bg-secondary\">Không rõ</span>";
+        }
+    }
+
     private string GetAverageRating()
     {
         try
@@ -324,30 +539,131 @@
         transition: all 0.3s ease;
     }
 
-
-    {
-        margin-bottom: 1rem;
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #495057;
     }
 
-    .d-flex.justify-content-between {
+    .table td {
+        vertical-align: middle;
+    }
+
+    .btn-group .btn {
+        border-radius: 0.25rem !important;
+    }
+
+
+    {
         flex-direction: column;
         gap: 1rem;
     }
 
-        .d-flex.justify-content-between .d-flex {
-            justify-content: center;
-        }
+    .d-flex.justify-content-between .d-flex {
+        justify-content: center;
+    }
 
     }
 </style>
 
 @section Scripts {
     <script>
+        let currentMovieId = @Model.ID;
+
+        function refreshTicketsList() {
+            const loadingDiv = document.getElementById('tickets-loading');
+            const ticketsList = document.getElementById('tickets-list');
+            const soldTicketsCount = document.getElementById('sold-tickets-count');
+
+            loadingDiv.style.display = 'block';
+            ticketsList.style.display = 'none';
+
+            fetch(`/ShowTimes/RefreshTicketData?movieId=${currentMovieId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update statistics
+                        soldTicketsCount.textContent = data.statistics.totalTickets;
+                        document.querySelector('#total-revenue').textContent = data.statistics.totalRevenue;
+                        document.querySelector('#total-showtimes').textContent = data.statistics.totalShowtimes;
+
+                        // Update tickets table
+                        updateTicketsTable(data.tickets);
+
+                        loadingDiv.style.display = 'none';
+                        ticketsList.style.display = 'block';
+                    } else {
+                        console.error('Error:', data.message);
+                        loadingDiv.style.display = 'none';
+                        ticketsList.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    loadingDiv.style.display = 'none';
+                    ticketsList.style.display = 'block';
+                });
+        }
+
+        function updateTicketsTable(tickets) {
+            const tbody = document.querySelector('#tickets-table tbody');
+
+            if (tickets.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center py-5">
+                            <i class="fas fa-ticket-alt text-muted fs-1 mb-3"></i>
+                            <h5 class="text-muted">Chưa có vé nào được bán</h5>
+                            <p class="text-muted mb-0">Vé sẽ hiển thị ở đây khi có khách hàng đặt vé cho phim này.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = tickets.map(ticket => `
+                <tr>
+                    <td><span class="badge bg-primary">#${ticket.id}</span></td>
+                    <td>
+                        <div class="fw-medium">${ticket.showtimeDate}</div>
+                        <small class="text-muted">${ticket.showtimeTime}</small>
+                    </td>
+                    <td>
+                        <div class="fw-medium">${ticket.theaterName}</div>
+                        <small class="text-muted">Phòng ${ticket.auditoriumName}</small>
+                    </td>
+                    <td><span class="badge bg-secondary">${ticket.seatNames}</span></td>
+                    <td><span class="fw-bold text-success">${ticket.price}</span></td>
+                    <td><span class="badge ${ticket.statusClass}">${ticket.status}</span></td>
+                    <td><div class="fw-medium">${ticket.customerName}</div></td>
+                    <td><small>${ticket.purchaseTime}</small></td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-info btn-sm" onclick="viewTicketDetails(${ticket.id})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function viewTicketDetails(ticketId) {
+            // Implement ticket details modal or redirect
+            alert('Xem chi tiết vé #' + ticketId);
+            // You can implement a modal here or redirect to ticket details page
+        }
+
+        function exportTicketsData() {
+            // Implement export functionality
+            window.open(`/ShowTimes/ExportTickets?movieId=${currentMovieId}`, '_blank');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             // Add loading state to buttons
             document.querySelectorAll('.btn').forEach(btn => {
                 btn.addEventListener('click', function(e) {
-                    if (this.href && !this.href.includes('#')) {
+                    if (this.href && !this.href.includes('#') && !this.onclick) {
                         this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang tải...';
                         this.disabled = true;
                     }
@@ -361,6 +677,14 @@
                     this.alt = 'Poster không khả dụng';
                 });
             });
+
+            // Auto refresh tickets count every 30 seconds
+            setInterval(() => {
+                refreshTicketsList();
+            }, 30000);
+
+            // Initial load of ticket data
+            refreshTicketsList();
         });
     </script>
 }

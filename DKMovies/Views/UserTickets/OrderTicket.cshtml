@@ -8,13 +8,28 @@
     // Get ALL available dates from ALL showtimes
     var availableDates = Model.Select(s => s.StartTime.Date).Distinct().OrderBy(d => d).ToList();
 
-    // Default to the first date if none is selected
-    if (string.IsNullOrEmpty(date) || !availableDates.Any(d => d.ToString("yyyy-MM-dd") == date))
+    // Default to the first date if none is selected - ADD NULL CHECK
+    if (string.IsNullOrEmpty(date))
+    {
+        if (availableDates.Any())
+        {
+            date = availableDates.First().ToString("yyyy-MM-dd");
+        }
+        else
+        {
+            date = DateTime.Now.ToString("yyyy-MM-dd"); // Fallback to today
+        }
+    }
+    else if (availableDates.Any() && !availableDates.Any(d => d.ToString("yyyy-MM-dd") == date))
     {
         date = availableDates.First().ToString("yyyy-MM-dd");
     }
 
-    var selectedDate = DateTime.Parse(date);
+    DateTime selectedDate;
+    if (!DateTime.TryParse(date, out selectedDate))
+    {
+        selectedDate = DateTime.Now.Date; // Fallback if parsing fails
+    }
 
     // All theaters that have showtimes on the selected date
     var theaters = Model

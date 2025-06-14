@@ -305,7 +305,7 @@ namespace Controllers.Admin
             {
                 _context.Movies.Remove(movie);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Movie deleted successfully.";
+                TempData["SuccessMessage"] = "Đã xóa phim.";
             }
             return RedirectToAction(nameof(Index));
         }
