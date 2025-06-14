@@ -1934,8 +1934,8 @@ BEGIN
 
     WHILE @i <= @showCount
     BEGIN
-        -- Random day offset between 0 and 515 (for Jan 1, 2024 to May 31, 2025)
-        DECLARE @dayOffset INT = ABS(CHECKSUM(NEWID())) % 516;
+        -- Random day offset between 0 and 729 (for Jan 1, 2024 to Dec 31, 2025)
+        DECLARE @dayOffset INT = ABS(CHECKSUM(NEWID())) % 730;
 
         -- Random hour between 8 and 22 (8AM to 10PM)
         DECLARE @hourOffset INT = ABS(CHECKSUM(NEWID())) % 15 + 8;
@@ -1959,6 +1959,7 @@ BEGIN
 
     SET @movieID += 1;
 END
+
 
 SET NOCOUNT OFF;
 
@@ -2424,7 +2425,7 @@ BEGIN
     FROM ShowTimes
     WHERE StartTime BETWEEN '2024-01-01' AND '2025-05-31'
     ORDER BY NEWID();
-
+	
     -- Generate PurchaseTime strictly before ShowTime
     DECLARE @maxOffsetMinutes INT = DATEDIFF(MINUTE, '2024-01-01', @showStart) - 60;
     DECLARE @purchaseOffsetMinutes INT = ABS(CHECKSUM(NEWID())) % CASE WHEN @maxOffsetMinutes > 0 THEN @maxOffsetMinutes ELSE 1 END;

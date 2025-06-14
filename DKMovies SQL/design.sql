@@ -298,7 +298,7 @@ CREATE TABLE LoginAttempts (
 );
 
 CREATE TABLE Messages (
-    MessageID INT IDENTITY(1,1) PRIMARY KEY,
+    ID INT IDENTITY(1,1) PRIMARY KEY,
 
     UserID INT NOT NULL, -- always present
 
@@ -330,14 +330,14 @@ CREATE TABLE Notifications (
     NotificationType NVARCHAR(50) NOT NULL,
 
 	MessageUserID INT NULL,
-	MessageAdminID INT NULL,
+	MessageID INT NULL,
     
     -- Foreign Key Constraints
     FOREIGN KEY (UserID) REFERENCES Users(ID) ON DELETE CASCADE,
     FOREIGN KEY (AdminID) REFERENCES Admins(ID) ON DELETE CASCADE,
     FOREIGN KEY (TicketID) REFERENCES Tickets(ID),
     FOREIGN KEY (MessageUserID) REFERENCES Users(ID),
-	FOREIGN KEY (MessageAdminID) REFERENCES Admins(ID),
+	FOREIGN KEY (MessageID) REFERENCES Messages(ID),
 
     -- 🔥 Mutually exclusive constraint:
     CONSTRAINT CHK_Notifications_Exclusivity CHECK (
@@ -355,6 +355,30 @@ CREATE TABLE Notifications (
         'System Message'
     ))
 );
+CREATE TABLE ReviewReactions (
+    ID INT IDENTITY PRIMARY KEY,
+    ReviewID INT NOT NULL,
+    UserID INT NOT NULL,
+    IsLike BIT NOT NULL,
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT FK_ReviewReactions_Reviews FOREIGN KEY (ReviewID) 
+        REFERENCES Reviews(ID),  -- Removed ON DELETE CASCADE
+    CONSTRAINT FK_ReviewReactions_Users FOREIGN KEY (UserID) 
+        REFERENCES Users(ID),    -- Removed ON DELETE CASCADE
+
+    CONSTRAINT UC_ReviewReactions_UserReview UNIQUE (ReviewID, UserID)
+);
+
+GO
+CREATE TRIGGER trg_DeleteReviewReactions_OnReviewDelete
+ON Reviews
+AFTER DELETE
+AS
+BEGIN
+    DELETE FROM ReviewReactions
+    WHERE ReviewID IN (SELECT ID FROM DELETED);
+END;
 
 
 
@@ -423,7 +447,6 @@ CREATE PROCEDURE sp_DeleteCountryMovies
 AS
 BEGIN
     DELETE FROM Movies WHERE CountryID = @CountryID;
-    DELETE FROM Directors WHERE CountryID = @CountryID;
 END;
 GO
 
@@ -435,3 +458,8 @@ BEGIN
     DELETE FROM ShowTimes WHERE SubtitleLanguageID = @LanguageID;
 END;
 GO
+
+CREATE INDEX IX_Tickets_PurchaseTime_Status ON Tickets (PurchaseTime, Status);
+CREATE INDEX IX_ShowTimes_StartTime_MovieID ON ShowTimes (StartTime, MovieID);
+CREATE INDEX IX_ShowTimes_StartTime_AuditoriumID ON ShowTimes (StartTime, AuditoriumID);
+CREATE INDEX IX_TicketSeats_TicketID ON TicketSeats (TicketID);
